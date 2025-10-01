@@ -1,0 +1,157 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PedidoItem extends Model
+{
+    use HasFactory;
+
+    protected $table = 'pedido_items';
+
+    protected $fillable = [
+        'pedido_id',
+        'producto_id',
+        'vendor_id',
+        'cantidad',
+        'precio_unitario',
+        'fulfillment_status',
+        'repartidor_id',
+        'justificacion',
+    ];
+
+    protected $casts = [
+        'precio_unitario' => 'decimal:2',
+        'cantidad'        => 'integer',
+    ];
+
+    // Estados
+    const ESTADO_ACEPTADO    = 'accepted';
+    const ESTADO_PREPARANDO  = 'preparing';
+    const ESTADO_LISTO       = 'ready';
+    const ESTADO_ENTREGADO   = 'delivered';
+    const ESTADO_RECHAZADO   = 'rejected';
+    const ESTADO_CANCELADO   = 'canceled';
+
+    /** Relaciones */
+    public function pedido(): BelongsTo
+    {
+        return $this->belongsTo(Pedido::class);
+    }
+
+    public function producto(): BelongsTo
+    {
+        // withDefault evita errores si el producto fue borrado
+        return $this->belongsTo(Producto::class, 'producto_id')->withDefault([
+            'nombre' => 'Producto no disponible',
+            'codigo' => null,
+            'vendor_id' => null,
+        ]);
+    }
+
+    /** Vendedor (users.id) propietario del ítem */
+    public function vendedor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'vendor_id');
+    }
+
+    public function repartidor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'repartidor_id');
+    }
+
+    /** Accesores */
+    public function getTotalAttribute(): float
+    {
+        return (float) $this->cantidad * (float) $this->precio_unitario;
+    }
+
+    public function getNombreProductoAttribute(): string
+    {
+        return (string) ($this->producto->nombre ?? 'Producto no disponible');
+    }
+
+    public function getImagenProductoAttribute()
+    {
+        return $this->producto->imagen ?? null;
+    }
+
+    /** Scopes */
+    public function scopeDelVendor($query, $vendorId)
+    {
+        return $query->where('vendor_id', $vendorId);
+    }
+
+    public function scopePorEstado($query, $estado)
+    {
+        return $query->where('fulfillment_status', $estado);
+    }
+
+    public function scopePendientes($query)
+    {
+        return $query->whereIn('fulfillment_status', [self::ESTADO_ACEPTADO, self::ESTADO_PREPARANDO]);
+    }
+
+    public function scopeCompletados($query)
+    {
+        return $query->where('fulfillment_status', self::ESTADO_ENTREGADO);
+    }
+
+    /** Métodos de ayuda */
+    public function estaPendiente(): bool
+    {
+        return in_array($this->fulfillment_status, [self::ESTADO_ACEPTADO, self::ESTADO_PREPARANDO], true);
+    }
+
+    public function estaCompletado(): bool
+    {
+        return $this->fulfillment_status === self::ESTADO_ENTREGADO;
+    }
+
+    public function estaCancelado(): bool
+    {
+        return $this->fulfillment_status === self::ESTADO_CANCELADO;
+    }
+
+    public function marcarComoPreparando(): bool
+    {
+        $this->fulfillment_status = self::ESTADO_PREPARANDO;
+        return $this->save();
+    }
+
+    public function marcarComoListo(): bool
+    {
+        $this->fulfillment_status = self::ESTADO_LISTO;
+        return $this->save();
+    }
+
+    public function marcarComoEntregado(): bool
+    {
+        $this->fulfillment_status = self::ESTADO_ENTREGADO;
+        return $this->save();
+    }
+
+    public function marcarComoCancelado(): bool
+    {
+        $this->fulfillment_status = self::ESTADO_CANCELADO;
+        return $this->save();
+    }
+
+    /** Relleno automático de vendor_id/precio al crear */
+    protected static function booted(): void
+    {
+        static::creating(function (PedidoItem $item) {
+            // Si no vino vendor_id, tomarlo del producto
+            if (empty($item->vendor_id) && $item->producto) {
+                $item->vendor_id = $item->producto->vendor_id;
+            }
+            // Si no vino precio_unitario, usar el precio del producto
+            if (empty($item->precio_unitario) && $item->producto) {
+                $item->precio_unitario = $item->producto->precio;
+            }
+        });
+    }
+}
