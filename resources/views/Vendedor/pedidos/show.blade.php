@@ -7,6 +7,8 @@
     <title>Detalles del Pedido - Vendedor</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7kGStbFh8g1FVLzeuL1Yypw5v1sC0qf2m0wEgg=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kGStbFh8g1FVLzeuL1Yypw5v1sC0qf2m0wEgg=" crossorigin=""></script>
 
     <style>
         /* Paleta fija (sin variables CSS) */
@@ -47,6 +49,7 @@
         .repartidor-section{background:#F9F2F3;padding:16px;border-radius:10px;margin-top:16px}
         .repartidor-select{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
         .tools{display:flex;gap:8px;flex-wrap:wrap}
+        #mapa-envio{width:100%;height:260px;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.08);margin-top:16px;border:1px solid #D9A6A6}
         @media (max-width:768px){
             .header{flex-direction:column;align-items:flex-start;gap:12px}
             .info-list li{flex-direction:column}
@@ -86,23 +89,20 @@
     elseif (is_object($dirRaw))  $dirArr = (array) $dirRaw;
     elseif (is_array($dirRaw))   $dirArr = $dirRaw;
 
-    $dirTexto = $dirArr
-        ? trim(($dirArr['direccion'] ?? '') . (isset($dirArr['referencia']) ? ' (Ref: '.$dirArr['referencia'].')' : ''))
-        : (is_string($dirRaw) ? $dirRaw : null);
-
-    // Teléfono con fallbacks
-    $telefono = data_get($dirArr, 'telefono') ?? ($cliente->telefono ?? null);
-
-    // Facturación (puede ser JSON string / array / obj)
-    $facRaw = $pedido->facturacion ?? null;
-    if (is_string($facRaw)) $facRaw = json_decode($facRaw, true) ?: [];
-    if (is_object($facRaw)) $facRaw = (array) $facRaw;
-    $facturacion = [
-        'requiere'  => (bool) data_get($facRaw, 'requiere', false),
-        'nit'       => data_get($facRaw, 'nit', 'CF'),
-        'nombre'    => data_get($facRaw, 'nombre'),
-        'direccion' => data_get($facRaw, 'direccion'),
+    $dirArr = $direccion ?? $dirArr;
+    $dirTexto = $direccionTexto ?? ($dirTexto ?? null);
+    $telefono = $telefonoCliente ?? ($cliente->telefono ?? null);
+    $coords   = $coordenadas ?? ['lat'=>null,'lng'=>null,'google'=>null];
+    $metodo   = $metodoPago ?? ($pedido->metodo_pago ?? null);
+    $delivery = $delivery ?? [
+        'mode' => \App\Models\PedidoItem::DELIVERY_PENDING,
+        'fee'  => 0,
+        'repartidor_id' => null,
+        'repartidor' => null,
     ];
+    $deliveryLabels = \App\Models\PedidoItem::deliveryModeLabels();
+    $repartidores = $repartidores ?? collect();
+    $deliveryInconsistent = $deliveryInconsistent ?? false;
 @endphp
 
 <div class="container">
@@ -126,6 +126,13 @@
             </a>
         </div>
     </div>
+
+    @if(session('ok'))
+        <div class="alert alert-success no-print">{{ session('ok') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger no-print">{{ session('error') }}</div>
+    @endif
 
     {{-- Información del Pedido --}}
     <div class="card">
@@ -158,6 +165,21 @@
                     <span>{{ $dirTexto ?? '—' }}</span>
                 </li>
                 <li>
+                    <strong><i class="fas fa-money-check-alt"></i> Método de pago:</strong>
+                    <span class="text-capitalize">{{ $metodo ? str_replace('_',' ', $metodo) : '—' }}</span>
+                </li>
+                @if($coords['lat'] && $coords['lng'])
+                    <li>
+                        <strong><i class="fas fa-location-arrow"></i> Coordenadas:</strong>
+                        <span>
+                            {{ $coords['lat'] }}, {{ $coords['lng'] }}
+                            @if($coords['google'])
+                                · <a href="{{ $coords['google'] }}" target="_blank" class="text-decoration-none">Abrir en Google Maps</a>
+                            @endif
+                        </span>
+                    </li>
+                @endif
+                <li>
                     <strong><i class="fas fa-phone"></i> Teléfono:</strong>
                     <span>{{ $telefono ?? '—' }}</span>
                 </li>
@@ -174,25 +196,80 @@
                         <li><strong><i class="fas fa-id-card"></i> NIT:</strong> <span>{{ $facturacion['nit'] ?? 'CF' }}</span></li>
                         <li><strong><i class="fas fa-user"></i> Nombre:</strong> <span>{{ $facturacion['nombre'] ?? '—' }}</span></li>
                         <li><strong><i class="fas fa-home"></i> Dirección fiscal:</strong> <span>{{ $facturacion['direccion'] ?? '—' }}</span></li>
+                        @if(!empty($facturacion['telefono']))
+                            <li><strong><i class="fas fa-phone"></i> Teléfono:</strong> <span>{{ $facturacion['telefono'] }}</span></li>
+                        @endif
                     </ul>
                 </div>
             @endif
 
-            {{-- Asignar Repartidor (demo UI) --}}
-            <div class="repartidor-section no-print">
-                <h4><i class="fas fa-motorcycle"></i> Asignar Repartidor</h4>
-                <div class="repartidor-select">
-                    <select class="form-select" id="repartidor-select">
-                        <option value="">Seleccionar repartidor</option>
-                        <option value="vendedor">Yo mismo (Vendedor)</option>
-                        <option value="1">Juan Pérez (+502 5555-1234)</option>
-                        <option value="2">María García (+502 5555-5678)</option>
-                        <option value="3">Carlos López (+502 5555-9012)</option>
-                    </select>
-                    <button class="btn-vino" onclick="asignarRepartidor()">
-                        <i class="fas fa-user-check"></i> Asignar
-                    </button>
+            @if(!empty($coords['lat']) && !empty($coords['lng']))
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h3><i class="fas fa-map"></i> Ubicación en mapa</h3>
+                    </div>
+                    <div id="mapa-envio"></div>
                 </div>
+            @endif
+
+            <div class="repartidor-section no-print">
+                <h4><i class="fas fa-motorcycle"></i> Logística de entrega</h4>
+
+                @if($deliveryInconsistent)
+                    <div class="alert alert-warning mt-2">Hay ítems con configuraciones de entrega distintas. Al guardar, todos usarán la configuración seleccionada.</div>
+                @endif
+
+                <form action="{{ route('vendedor.pedidos.logistica', $pedido) }}" method="POST" class="mt-3">
+                    @csrf
+                    <div class="row g-3">
+                        <div class="col-12 col-lg-4">
+                            <label class="form-label d-block">¿Quién entregará?</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="delivery_mode" id="deliverySelf" value="{{ \App\Models\PedidoItem::DELIVERY_VENDOR_SELF }}" {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_VENDOR_SELF ? 'checked' : '' }}>
+                                <label class="form-check-label" for="deliverySelf">Yo me encargo de la entrega</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="delivery_mode" id="deliveryCourier" value="{{ \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER }}" {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER ? 'checked' : '' }}>
+                                <label class="form-check-label" for="deliveryCourier">Asignar a un repartidor aliado</label>
+                            </div>
+                            @error('delivery_mode') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                            <label class="form-label" for="repartidor_vendedor_select">Repartidor</label>
+                            <select class="form-select" name="repartidor_id" id="repartidor_vendedor_select">
+                                <option value="">Selecciona un repartidor</option>
+                                @foreach($repartidores as $rep)
+                                    <option value="{{ $rep->id }}" @selected((int) old('repartidor_id', $delivery['repartidor_id']) === (int) $rep->id)>
+                                        {{ $rep->name }}{{ $rep->telefono ? ' · '.$rep->telefono : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('repartidor_id') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="col-12 col-lg-4">
+                            <label class="form-label" for="delivery_fee_input">Tarifa por entrega (Q)</label>
+                            <input type="number" step="0.01" min="0" max="500" class="form-control" id="delivery_fee_input" name="delivery_fee" value="{{ old('delivery_fee', number_format($delivery['fee'], 2, '.', '')) }}">
+                            <small class="text-muted d-block mt-1">Este monto se suma al total del cliente para tus productos.</small>
+                            @error('delivery_fee') <span class="text-danger small d-block mt-1">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
+                        <button type="submit" class="btn-vino">
+                            <i class="fas fa-save"></i> Guardar logística
+                        </button>
+
+                        @if($delivery['mode'] === \App\Models\PedidoItem::DELIVERY_VENDOR_SELF)
+                            <span class="badge bg-light text-dark">Entrega a cargo del vendedor</span>
+                        @elseif($delivery['mode'] === \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER && $delivery['repartidor'])
+                            <span class="badge bg-light text-dark">Asignado a: {{ $delivery['repartidor']->name }}{{ $delivery['repartidor']->telefono ? ' · '.$delivery['repartidor']->telefono : '' }}</span>
+                        @elseif(isset($deliveryLabels[$delivery['mode']]))
+                            <span class="badge bg-light text-dark">{{ $deliveryLabels[$delivery['mode']] }}</span>
+                        @endif
+                    </div>
+                </form>
             </div>
         @endif
     </div>
@@ -286,11 +363,34 @@
 </div>
 
 <script>
-    function asignarRepartidor() {
-        const select = document.getElementById('repartidor-select');
-        if (!select.value) { alert('Por favor selecciona un repartidor'); return; }
-        alert('Repartidor asignado (demo). Implementa el POST real aquí.');
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const deliveryRadios = document.querySelectorAll('input[name="delivery_mode"]');
+        const repartidorSelect = document.getElementById('repartidor_vendedor_select');
+
+        const toggleRepartidor = () => {
+            if (!repartidorSelect) { return; }
+            const selected = document.querySelector('input[name="delivery_mode"]:checked');
+            const needsRepartidor = selected && selected.value === '{{ \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER }}';
+            repartidorSelect.disabled = !needsRepartidor;
+            repartidorSelect.classList.toggle('disabled', !needsRepartidor);
+        };
+
+        deliveryRadios.forEach(radio => radio.addEventListener('change', toggleRepartidor));
+        toggleRepartidor();
+    });
+
+    // Mapa
+    @if(!empty($coords['lat']) && !empty($coords['lng']))
+    document.addEventListener('DOMContentLoaded', () => {
+        const map = L.map('mapa-envio').setView([{{ $coords['lat'] }}, {{ $coords['lng'] }}], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        L.marker([{{ $coords['lat'] }}, {{ $coords['lng'] }}]).addTo(map)
+            .bindPopup(@json($dirTexto ?? 'Ubicación de entrega'));
+    });
+    @endif
 
     // Spinner al enviar formularios
     document.querySelectorAll('form').forEach(form => {

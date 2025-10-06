@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PedidoItemController extends Controller
 {
@@ -33,10 +34,10 @@ class PedidoItemController extends Controller
         $pedidoItem->fulfillment_status = $request->estado;
         $pedidoItem->save();
 
-        // Recalcular estado global del pedido
         $pedido = $pedidoItem->pedido()->with('items')->first();
-        $pedido->estado_global = $this->calcularEstadoGlobal($pedido);
-        $pedido->save();
+        if ($pedido) {
+            $pedido->refreshEstadoGlobalFromItems();
+        }
 
         return back()->with('ok', 'Estado del ítem actualizado');
     }
@@ -64,20 +65,51 @@ class PedidoItemController extends Controller
         }
 
         $pedido->refresh();
-        $pedido->estado_global = $this->calcularEstadoGlobal($pedido);
-        $pedido->save();
+        $pedido->refreshEstadoGlobalFromItems();
 
         return back()->with('ok', 'Estados actualizados');
     }
 
-    private function calcularEstadoGlobal(Pedido $pedido): string
+    public function assignDelivery(Request $request, Pedido $pedido)
     {
-        $s = $pedido->items->pluck('fulfillment_status');
+        $vendorId = optional(auth()->user()->vendor)->id;
+        abort_if(!$vendorId, 403, 'No tienes perfil de vendedor activo.');
 
-        if ($s->every(fn ($e) => $e === 'delivered')) return 'entregado';
-        if ($s->every(fn ($e) => in_array($e, ['ready', 'delivered']))) return 'listo';
-        if ($s->contains('preparing')) return 'preparando';
+        $items = $pedido->items()->where('vendor_id', $vendorId)->get();
+        abort_if($items->isEmpty(), 403, 'No tienes productos en este pedido.');
 
-        return 'pendiente';
+        $data = $request->validate([
+            'delivery_mode' => ['required', Rule::in([
+                PedidoItem::DELIVERY_VENDOR_SELF,
+                PedidoItem::DELIVERY_VENDOR_COURIER,
+            ])],
+            'repartidor_id' => [
+                'nullable',
+                'required_if:delivery_mode,' . PedidoItem::DELIVERY_VENDOR_COURIER,
+                Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'repartidor')->where('estado', 'activo')),
+            ],
+            'delivery_fee'  => ['nullable', 'numeric', 'min:0', 'max:500'],
+        ], [
+            'repartidor_id.required_if' => 'Selecciona un repartidor disponible para la entrega.',
+        ]);
+
+        $deliveryFee = (float) ($data['delivery_fee'] ?? 0);
+        $deliveryMode = $data['delivery_mode'];
+        $repartidorId = $deliveryMode === PedidoItem::DELIVERY_VENDOR_COURIER
+            ? $data['repartidor_id']
+            : auth()->id();
+
+        foreach ($items as $index => $item) {
+            $item->delivery_mode = $deliveryMode;
+            $item->delivery_fee = $index === 0 ? $deliveryFee : 0;
+            $item->repartidor_id = $repartidorId;
+            $item->save();
+        }
+
+        $pedido->refresh();
+        $pedido->syncEnvioFromItems();
+        $pedido->refreshEstadoGlobalFromItems();
+
+        return back()->with('ok', 'Preferencias de entrega actualizadas.');
     }
 }

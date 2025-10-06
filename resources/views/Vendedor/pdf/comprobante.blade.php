@@ -44,12 +44,17 @@
         <div class="box">
             <h3>Entrega</h3>
             @php
-                $dir = $pedido->direccion_envio;
-                if (is_string($dir)) $dir = json_decode($dir, true) ?: null;
-                if (is_object($dir)) $dir = (array) $dir;
+                $dir = $pedido->direccion_envio ?? [];
+                $texto = [];
+                if (!empty($dir['descripcion'])) $texto[] = $dir['descripcion'];
+                if (!empty($dir['colonia'])) $texto[] = $dir['colonia'];
+                $dirTexto = $texto ? implode(', ', $texto) : '--';
             @endphp
-            <div>{{ $dir['direccion'] ?? ($dir ?? '--') }}</div>
+            <div>{{ $dirTexto }}</div>
             @if(!empty($dir['referencia']))<div>Ref: {{ $dir['referencia'] }}</div>@endif
+            @if(!empty($dir['lat']) && !empty($dir['lng']))
+                <div>Coordenadas: {{ $dir['lat'] }}, {{ $dir['lng'] }}</div>
+            @endif
         </div>
     </div>
 
@@ -82,7 +87,20 @@
         <tr><td class="right">Subtotal:</td><td class="right">Q {{ number_format($subtotal,2) }}</td></tr>
         <tr><td class="right">IVA (12%):</td><td class="right">Q {{ number_format($iva,2) }}</td></tr>
         <tr><td class="right"><strong>Total pagado:</strong></td><td class="right"><strong>Q {{ number_format($total,2) }}</strong></td></tr>
+        <tr><td class="right">Método de pago:</td><td class="right">{{ ucfirst(str_replace('_',' ', $pedido->metodo_pago ?? 'efectivo')) }}</td></tr>
     </table>
+
+    @php
+        $fac = $pedido->facturacion ?? [];
+    @endphp
+    @if(!empty($fac['requiere']))
+        <div class="box" style="margin-top:10px;">
+            <h3>Datos de facturación</h3>
+            <div>NIT: {{ $fac['nit'] ?? 'CF' }}</div>
+            <div>Nombre: {{ $fac['nombre'] ?? 'Consumidor Final' }}</div>
+            <div>Dirección: {{ $fac['direccion'] ?? '—' }}</div>
+        </div>
+    @endif
 
     <div class="thanks">¡Gracias por su compra!</div>
 </div>

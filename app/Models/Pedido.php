@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class Pedido extends Model
@@ -20,6 +21,7 @@ class Pedido extends Model
         'estado_pago',
         'estado_global',
         'direccion_envio',
+        'facturacion',
         'codigo', // Agregado para el código del pedido
     ];
 
@@ -29,6 +31,7 @@ class Pedido extends Model
         'envio' => 'decimal:2',
         'total' => 'decimal:2',
         'direccion_envio' => 'array',
+        'facturacion' => 'array',
     ];
 
     // Relación con el cliente (User)
@@ -47,6 +50,22 @@ class Pedido extends Model
     public function items()
     {
         return $this->hasMany(PedidoItem::class);
+    }
+
+    public function itemsSupermercado()
+    {
+        return $this->items()->whereNull('vendor_id');
+    }
+
+    public function productos()
+    {
+        return $this->belongsToMany(Producto::class, 'pedido_items')
+            ->withPivot('cantidad', 'precio_unitario', 'vendor_id');
+    }
+
+    public function productosSupermercado()
+    {
+        return $this->productos()->wherePivotNull('vendor_id');
     }
 
     // Relación con los pagos
@@ -89,11 +108,95 @@ class Pedido extends Model
         $dir = $this->direccion_envio;
         $direccion = '';
 
-        if (isset($dir['descripcion'])) $direccion .= $dir['descripcion'];
-        if (isset($dir['colonia'])) $direccion .= ', ' . $dir['colonia'];
-        if (isset($dir['referencia'])) $direccion .= ' (Ref: ' . $dir['referencia'] . ')';
-        if (isset($dir['telefono'])) $direccion .= ' - Tel: ' . $dir['telefono'];
+        $componentes = [];
+        $descripcion = trim((string) ($dir['descripcion'] ?? ''));
+        $colonia     = trim((string) ($dir['colonia'] ?? ''));
+        $municipio   = trim((string) ($dir['municipio'] ?? ''));
 
-        return $direccion ?: 'Dirección no especificada';
+        if ($descripcion !== '') {
+            $componentes[] = $descripcion;
+        }
+        if ($colonia !== '') {
+            $componentes[] = $colonia;
+        }
+        if ($municipio !== '') {
+            $componentes[] = $municipio;
+        }
+
+        $direccion = implode(', ', $componentes);
+
+        if (!empty($dir['referencia'])) {
+            $direccion .= ' (Ref: ' . $dir['referencia'] . ')';
+        }
+        if (!empty($dir['telefono'])) {
+            $direccion .= ' - Tel: ' . $dir['telefono'];
+        }
+
+        return $direccion !== '' ? $direccion : 'Dirección no especificada';
+    }
+
+    public function syncEnvioFromItems(): void
+    {
+        $envio = (float) $this->items()->sum('delivery_fee');
+        $this->envio = $envio;
+        $this->total = (float) $this->subtotal - (float) $this->descuento + $envio;
+        $this->save();
+    }
+
+    public function refreshEstadoGlobalFromItems(): string
+    {
+        $statuses = $this->items()->pluck('fulfillment_status');
+
+        if ($statuses->isEmpty()) {
+            $this->estado_global = 'pendiente';
+            $this->save();
+            return $this->estado_global;
+        }
+
+        $estado = match (true) {
+            $statuses->every(fn ($s) => $s === PedidoItem::ESTADO_ENTREGADO) => 'entregado',
+            $statuses->every(fn ($s) => in_array($s, [PedidoItem::ESTADO_LISTO, PedidoItem::ESTADO_ENTREGADO], true)) => 'listo',
+            $statuses->contains(PedidoItem::ESTADO_PREPARANDO) => 'preparando',
+            default => 'pendiente',
+        };
+
+        $this->estado_global = $estado;
+        $this->save();
+
+        return $estado;
+    }
+
+    protected function direccionEnvio(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->normalizeJson($value),
+        );
+    }
+
+    protected function facturacion(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->normalizeJson($value),
+        );
+    }
+
+    protected function normalizeJson($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_object($value)) {
+            return (array) $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
     }
 }

@@ -208,6 +208,9 @@ Route::middleware(['auth', 'role:vendedor', 'vendor.active'])
         Route::post('/pedidoitems/{pedido}/actualizar-todos', [PedidoItemController::class, 'updateAllStatus'])
             ->whereNumber('pedido')->name('pedidoitems.actualizar.todos');
 
+        Route::post('/pedidos/{pedido}/logistica', [PedidoItemController::class, 'assignDelivery'])
+            ->whereNumber('pedido')->name('pedidos.logistica');
+
         // Compat (si aún hay vistas antiguas que apuntan a estos endpoints)
         Route::post('/items/{item}/aceptar',  [VendedorPedidoController::class, 'aceptarItem'])->whereNumber('item')->name('items.aceptar');
         Route::post('/items/{item}/rechazar', [VendedorPedidoController::class, 'rechazarItem'])->whereNumber('item')->name('items.rechazar');

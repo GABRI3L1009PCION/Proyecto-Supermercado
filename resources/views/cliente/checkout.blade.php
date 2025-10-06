@@ -88,6 +88,7 @@
         /* Errores */
         .error-message{color:#dc2626;font-size:.875rem;margin-top:6px;display:block}
         .alert-error{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:16px;border-radius:var(--radio);margin:20px}
+        .helper-text{display:block;font-size:.85rem;color:#6b7280;margin-top:6px}
 
         /* === Pago: opciones (NUEVO) === */
         .pay-grid{
@@ -147,6 +148,16 @@
     </style>
 </head>
 <body>
+@php
+    $coloniasListado = collect($colonias ?? config('geografia.santo_tomas_colonias'));
+    $coloniasDataset = $coloniasListado->map(fn ($colonia) => [
+        'nombre' => $colonia['nombre'],
+        'lat'    => $colonia['lat'],
+        'lng'    => $colonia['lng'],
+        'zoom'   => $colonia['zoom'] ?? 16,
+    ]);
+    $mapaCentro = $mapaDefault ?? config('geografia.santo_tomas_default');
+@endphp
 <div class="checkout-wrapper">
     <div class="checkout-container">
         <!-- Header -->
@@ -253,14 +264,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Colonia o Barrio *</label>
-                    <select name="colonia" class="form-select" required>
-                        <option value="">Seleccione</option>
-                        @foreach (['Centro','El Rastro','La Playa','Santo Tomás','Otras'] as $opt)
-                            <option value="{{ $opt }}" {{ old('colonia')===$opt ? 'selected':'' }}>{{ $opt }}</option>
+                    <label class="form-label" for="coloniaSelect">Colonia o Barrio *</label>
+                    <select name="colonia" id="coloniaSelect" class="form-select" required>
+                        <option value="">Selecciona tu colonia o barrio</option>
+                        @foreach ($coloniasListado as $colonia)
+                            <option value="{{ $colonia['nombre'] }}" @selected(old('colonia')===$colonia['nombre'])>
+                                {{ $colonia['nombre'] }}
+                            </option>
                         @endforeach
                     </select>
                     @error('colonia') <span class="error-message">{{ $message }}</span> @enderror
+                    <span class="helper-text">Al elegir una colonia centraremos el mapa automáticamente en la zona seleccionada.</span>
                 </div>
 
                 <div class="form-group">
@@ -270,6 +284,7 @@
                     <input type="hidden" name="lng" id="lng" value="{{ old('lng') }}">
                     @error('lat') <span class="error-message">{{ $message }}</span> @enderror
                     @error('lng') <span class="error-message">{{ $message }}</span> @enderror
+                    <span class="helper-text">Después de centrar el mapa, mueve el pin haciendo clic donde exactamente deseas recibir tu pedido.</span>
                 </div>
 
                 <div class="btn-group">
@@ -432,10 +447,12 @@
     }
     function cerrarModal(id){ const m=document.getElementById(id); if(m) m.style.display='none'; }
     function mostrarModalCarrito(){ abrirModal('modalCarrito'); }
+    const coloniaSelect = document.getElementById('coloniaSelect');
+
     function mostrarModalEntrega(){
         const d=document.querySelector('input[name="direccion"]').value.trim();
         const t=document.querySelector('input[name="telefono"]').value.trim();
-        const c=document.querySelector('select[name="colonia"]').value;
+        const c=coloniaSelect ? coloniaSelect.value : '';
         if(!d||!t||!c){ alert('Por favor, completa todos los campos obligatorios de entrega.'); return; }
         abrirModal('modalEntrega');
     }
@@ -457,22 +474,48 @@
     }
 
     // --- Leaflet ---
-    const mapa=L.map('mapa').setView([15.717,-88.592],13);
+    const baseCenter=@json($mapaCentro);
+    const coloniasData=@json($coloniasDataset);
+    const mapa=L.map('mapa').setView([baseCenter.lat, baseCenter.lng], baseCenter.zoom ?? 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapa);
     let marker;
+
+    function colocarMarcador(pos, zoom){
+        if(!pos) return;
+        if(marker) mapa.removeLayer(marker);
+        marker=L.marker(pos).addTo(mapa);
+        if(zoom){ mapa.setView(pos, zoom); }
+        document.getElementById('lat').value=pos.lat;
+        document.getElementById('lng').value=pos.lng;
+    }
+
     (function initMarkerFromOld(){
-        const latOld=document.getElementById('lat').value;
-        const lngOld=document.getElementById('lng').value;
-        if(latOld&&lngOld){
-            const pos=L.latLng(parseFloat(latOld),parseFloat(lngOld));
-            marker=L.marker(pos).addTo(mapa); mapa.setView(pos,15);
+        const latOld=parseFloat(document.getElementById('lat').value);
+        const lngOld=parseFloat(document.getElementById('lng').value);
+        if(!Number.isNaN(latOld) && !Number.isNaN(lngOld)){
+            const pos=L.latLng(latOld,lngOld);
+            colocarMarcador(pos, mapa.getZoom());
         }
     })();
+
+    function centrarEnColonia(nombre){
+        const colonia=coloniasData.find(c=>c.nombre===nombre);
+        if(!colonia) return;
+        if(colonia.lat && colonia.lng){
+            const pos=L.latLng(colonia.lat, colonia.lng);
+            colocarMarcador(pos, colonia.zoom || 16);
+        }
+    }
+
+    if(coloniaSelect){
+        coloniaSelect.addEventListener('change',()=>centrarEnColonia(coloniaSelect.value));
+        if(coloniaSelect.value){
+            centrarEnColonia(coloniaSelect.value);
+        }
+    }
+
     mapa.on('click',function(e){
-        if(marker) mapa.removeLayer(marker);
-        marker=L.marker(e.latlng).addTo(mapa);
-        document.getElementById('lat').value=e.latlng.lat;
-        document.getElementById('lng').value=e.latlng.lng;
+        colocarMarcador(e.latlng, mapa.getZoom());
     });
 
     // --- Facturación condicional ---

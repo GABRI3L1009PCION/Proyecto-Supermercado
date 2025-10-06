@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Vendedor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class PedidoController extends Controller
@@ -28,31 +30,61 @@ class PedidoController extends Controller
             'cliente:id,name,email,telefono',
             'items' => function ($q) use ($vendorId) {
                 $q->where('vendor_id', $vendorId)
-                    ->with('producto:id,nombre,slug,vendor_id'); // sin "codigo"
+                    ->with([
+                        'producto:id,nombre,slug,vendor_id',
+                        'repartidor:id,name,telefono',
+                    ]);
             },
         ]);
 
         // Normaliza posibles JSON guardados como string
-        $dir = $pedido->direccion_envio;
-        if (is_string($dir)) $dir = json_decode($dir, true) ?: null;
-
-        $fac = $pedido->facturacion;
-        if (is_string($fac)) $fac = json_decode($fac, true) ?: [];
+        $dir = $pedido->direccion_envio ?? [];
 
         $telefonoCliente = data_get($dir, 'telefono') ?: data_get($pedido->cliente, 'telefono');
 
         $facturacion = [
-            'requiere'  => (bool) data_get($fac, 'requiere', false),
-            'nit'       => data_get($fac, 'nit', 'CF'),
-            'nombre'    => data_get($fac, 'nombre'),
-            'direccion' => data_get($fac, 'direccion'),
+            'requiere'  => (bool) data_get($pedido->facturacion, 'requiere', false),
+            'nit'       => data_get($pedido->facturacion, 'nit', 'CF'),
+            'nombre'    => data_get($pedido->facturacion, 'nombre'),
+            'direccion' => data_get($pedido->facturacion, 'direccion'),
+            'telefono'  => data_get($pedido->facturacion, 'telefono'),
         ];
+
+        $lat = data_get($dir, 'lat');
+        $lng = data_get($dir, 'lng');
+        $dirTexto = $pedido->direccion_formateada;
+        $googleMapsUrl = ($lat && $lng)
+            ? sprintf('https://www.google.com/maps?q=%s,%s', $lat, $lng)
+            : null;
+
+        $repartidores = User::where('role', 'repartidor')->where('estado', 'activo')->get(['id', 'name', 'telefono']);
+
+        $primerItem = $pedido->items->first();
+        $deliveryInfo = [
+            'mode'          => $primerItem?->delivery_mode ?? PedidoItem::DELIVERY_PENDING,
+            'fee'           => (float) ($primerItem?->delivery_fee ?? 0),
+            'repartidor_id' => $primerItem?->repartidor_id,
+            'repartidor'    => optional($primerItem?->repartidor),
+        ];
+
+        $deliveryInconsistent = $pedido->items
+            ->pluck('delivery_mode')
+            ->filter()
+            ->unique()
+            ->count() > 1;
 
         return view('Vendedor.pedidos.show', [
             'pedido'          => $pedido,
             'pedidoItems'     => $pedido->items, // ya filtrados por vendor
             'telefonoCliente' => $telefonoCliente,
             'facturacion'     => $facturacion,
+            'direccion'       => $dir,
+            'direccionTexto'  => $dirTexto,
+            'coordenadas'     => ['lat' => $lat, 'lng' => $lng, 'google' => $googleMapsUrl],
+            'metodoPago'      => $pedido->metodo_pago,
+            'repartidores'    => $repartidores,
+            'delivery'        => $deliveryInfo,
+            'deliveryInconsistent' => $deliveryInconsistent,
         ]);
     }
 
