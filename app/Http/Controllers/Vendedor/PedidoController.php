@@ -33,26 +33,34 @@ class PedidoController extends Controller
         ]);
 
         // Normaliza posibles JSON guardados como string
-        $dir = $pedido->direccion_envio;
-        if (is_string($dir)) $dir = json_decode($dir, true) ?: null;
-
-        $fac = $pedido->facturacion;
-        if (is_string($fac)) $fac = json_decode($fac, true) ?: [];
+        $dir = $pedido->direccion_envio ?? [];
 
         $telefonoCliente = data_get($dir, 'telefono') ?: data_get($pedido->cliente, 'telefono');
 
         $facturacion = [
-            'requiere'  => (bool) data_get($fac, 'requiere', false),
-            'nit'       => data_get($fac, 'nit', 'CF'),
-            'nombre'    => data_get($fac, 'nombre'),
-            'direccion' => data_get($fac, 'direccion'),
+            'requiere'  => (bool) data_get($pedido->facturacion, 'requiere', false),
+            'nit'       => data_get($pedido->facturacion, 'nit', 'CF'),
+            'nombre'    => data_get($pedido->facturacion, 'nombre'),
+            'direccion' => data_get($pedido->facturacion, 'direccion'),
+            'telefono'  => data_get($pedido->facturacion, 'telefono'),
         ];
+
+        $lat = data_get($dir, 'lat');
+        $lng = data_get($dir, 'lng');
+        $dirTexto = $pedido->direccion_formateada;
+        $googleMapsUrl = ($lat && $lng)
+            ? sprintf('https://www.google.com/maps?q=%s,%s', $lat, $lng)
+            : null;
 
         return view('Vendedor.pedidos.show', [
             'pedido'          => $pedido,
             'pedidoItems'     => $pedido->items, // ya filtrados por vendor
             'telefonoCliente' => $telefonoCliente,
             'facturacion'     => $facturacion,
+            'direccion'       => $dir,
+            'direccionTexto'  => $dirTexto,
+            'coordenadas'     => ['lat' => $lat, 'lng' => $lng, 'google' => $googleMapsUrl],
+            'metodoPago'      => $pedido->metodo_pago,
         ]);
     }
 

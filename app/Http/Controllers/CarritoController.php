@@ -121,21 +121,27 @@ class CarritoController extends Controller
         $total     = $subtotal - $descuento + $envio;
 
         $direccionEnvio = [
-            'descripcion'     => $data['direccion'],
-            'telefono'        => $data['telefono'],
-            'referencia'      => $data['referencia'] ?? null,
-            'colonia'         => $data['colonia'],
-            'lat'             => $data['lat'] ?? null,
-            'lng'             => $data['lng'] ?? null,
-            'factura'         => $data['factura'] === 'si',
-            'nit'             => $data['factura'] === 'si' ? ($data['nit'] ?? null) : null,
-            'razon_social'    => $data['factura'] === 'si' ? ($data['razon_social'] ?? null) : null,
-            'nombre_empresa'  => $data['factura'] === 'si' ? ($data['nombre_empresa'] ?? null) : null,
+            'descripcion' => $data['direccion'],
+            'telefono'    => $data['telefono'],
+            'referencia'  => $data['referencia'] ?? null,
+            'colonia'     => $data['colonia'],
+            'lat'         => $data['lat'] ?? null,
+            'lng'         => $data['lng'] ?? null,
+        ];
+
+        $facturacion = [
+            'requiere'  => $data['factura'] === 'si',
+            'nit'       => $data['factura'] === 'si' ? ($data['nit'] ?? 'CF') : 'CF',
+            'nombre'    => $data['factura'] === 'si'
+                ? ($data['razon_social'] ?? $data['nombre_empresa'] ?? null)
+                : null,
+            'direccion' => $data['factura'] === 'si' ? $data['direccion'] : null,
+            'telefono'  => $data['telefono'],
         ];
 
         $pedido = null;
 
-        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $carrito, &$pedido) {
+        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $facturacion, $carrito, &$pedido) {
             $pedido = Pedido::create([
                 'user_id'         => Auth::id(),
                 'repartidor_id'   => null,
@@ -147,6 +153,7 @@ class CarritoController extends Controller
                 'estado_pago'     => 'pendiente',
                 'estado_global'   => 'pendiente',
                 'direccion_envio' => $direccionEnvio,
+                'facturacion'     => $facturacion,
             ]);
 
             $productosDB = Producto::whereIn('id', array_keys($carrito))->get()->keyBy('id');

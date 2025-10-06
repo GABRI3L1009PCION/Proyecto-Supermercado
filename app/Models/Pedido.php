@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class Pedido extends Model
@@ -20,6 +21,7 @@ class Pedido extends Model
         'estado_pago',
         'estado_global',
         'direccion_envio',
+        'facturacion',
         'codigo', // Agregado para el código del pedido
     ];
 
@@ -29,6 +31,7 @@ class Pedido extends Model
         'envio' => 'decimal:2',
         'total' => 'decimal:2',
         'direccion_envio' => 'array',
+        'facturacion' => 'array',
     ];
 
     // Relación con el cliente (User)
@@ -47,6 +50,22 @@ class Pedido extends Model
     public function items()
     {
         return $this->hasMany(PedidoItem::class);
+    }
+
+    public function itemsSupermercado()
+    {
+        return $this->items()->whereNull('vendor_id');
+    }
+
+    public function productos()
+    {
+        return $this->belongsToMany(Producto::class, 'pedido_items')
+            ->withPivot('cantidad', 'precio_unitario', 'vendor_id');
+    }
+
+    public function productosSupermercado()
+    {
+        return $this->productos()->wherePivotNull('vendor_id');
     }
 
     // Relación con los pagos
@@ -95,5 +114,39 @@ class Pedido extends Model
         if (isset($dir['telefono'])) $direccion .= ' - Tel: ' . $dir['telefono'];
 
         return $direccion ?: 'Dirección no especificada';
+    }
+
+    protected function direccionEnvio(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->normalizeJson($value),
+        );
+    }
+
+    protected function facturacion(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->normalizeJson($value),
+        );
+    }
+
+    protected function normalizeJson($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_object($value)) {
+            return (array) $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
     }
 }
