@@ -101,17 +101,4 @@ class PedidoController extends Controller
         return redirect()->route('admin.pedidos.index')->with('success', 'Estado del pedido actualizado correctamente.');
     }
 
-    public function asignar(Request $request, $pedido)
-    {
-        $request->validate([
-            'repartidor_id' => 'required|exists:users,id'
-        ]);
-
-        $pedido = Pedido::findOrFail($pedido);
-        $pedido->repartidor_id = $request->repartidor_id;
-        $pedido->estado_global = 'preparando';
-        $pedido->save();
-
-        return redirect()->route('admin.pedidos.index')->with('success', 'Repartidor asignado correctamente.');
-    }
 }
