@@ -9,6 +9,7 @@ use App\Models\PedidoItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class CarritoController extends Controller
 {
@@ -84,7 +85,10 @@ class CarritoController extends Controller
             return redirect()->route('carrito.ver')->with('error', 'El carrito está vacío.');
         }
 
-        return view('cliente.checkout', compact('carrito'));
+        $colonias = config('geografia.santo_tomas_colonias');
+        $mapaDefault = config('geografia.santo_tomas_default');
+
+        return view('cliente.checkout', compact('carrito', 'colonias', 'mapaDefault'));
     }
 
     public function confirmarCheckout(Request $request)
@@ -94,11 +98,16 @@ class CarritoController extends Controller
             return redirect()->route('carrito.ver')->with('error', 'El carrito está vacío.');
         }
 
+        $coloniasDisponibles = collect(config('geografia.santo_tomas_colonias'))
+            ->pluck('nombre')
+            ->filter()
+            ->toArray();
+
         $data = $request->validate([
             'direccion'      => ['required', 'string', 'max:255'],
             'telefono'       => ['required', 'string', 'max:30'],
             'referencia'     => ['nullable', 'string', 'max:255'],
-            'colonia'        => ['required', 'string', 'max:100'],
+            'colonia'        => ['required', 'string', 'max:100', Rule::in($coloniasDisponibles)],
             'lat'            => ['nullable', 'numeric'],
             'lng'            => ['nullable', 'numeric'],
             'factura'        => ['required', 'in:si,no'],
@@ -121,21 +130,28 @@ class CarritoController extends Controller
         $total     = $subtotal - $descuento + $envio;
 
         $direccionEnvio = [
-            'descripcion'     => $data['direccion'],
-            'telefono'        => $data['telefono'],
-            'referencia'      => $data['referencia'] ?? null,
-            'colonia'         => $data['colonia'],
-            'lat'             => $data['lat'] ?? null,
-            'lng'             => $data['lng'] ?? null,
-            'factura'         => $data['factura'] === 'si',
-            'nit'             => $data['factura'] === 'si' ? ($data['nit'] ?? null) : null,
-            'razon_social'    => $data['factura'] === 'si' ? ($data['razon_social'] ?? null) : null,
-            'nombre_empresa'  => $data['factura'] === 'si' ? ($data['nombre_empresa'] ?? null) : null,
+            'descripcion' => $data['direccion'],
+            'telefono'    => $data['telefono'],
+            'referencia'  => $data['referencia'] ?? null,
+            'colonia'     => $data['colonia'],
+            'municipio'   => 'Santo Tomás de Castilla',
+            'lat'         => $data['lat'] ?? null,
+            'lng'         => $data['lng'] ?? null,
+        ];
+
+        $facturacion = [
+            'requiere'  => $data['factura'] === 'si',
+            'nit'       => $data['factura'] === 'si' ? ($data['nit'] ?? 'CF') : 'CF',
+            'nombre'    => $data['factura'] === 'si'
+                ? ($data['razon_social'] ?? $data['nombre_empresa'] ?? null)
+                : null,
+            'direccion' => $data['factura'] === 'si' ? $data['direccion'] : null,
+            'telefono'  => $data['telefono'],
         ];
 
         $pedido = null;
 
-        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $carrito, &$pedido) {
+        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $facturacion, $carrito, &$pedido) {
             $pedido = Pedido::create([
                 'user_id'         => Auth::id(),
                 'repartidor_id'   => null,
@@ -147,6 +163,7 @@ class CarritoController extends Controller
                 'estado_pago'     => 'pendiente',
                 'estado_global'   => 'pendiente',
                 'direccion_envio' => $direccionEnvio,
+                'facturacion'     => $facturacion,
             ]);
 
             $productosDB = Producto::whereIn('id', array_keys($carrito))->get()->keyBy('id');
