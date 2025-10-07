@@ -156,13 +156,17 @@
 </head>
 <body>
 @php
-    $coloniasListado = collect($colonias ?? config('geografia.santo_tomas_colonias'));
-    $coloniasDataset = $coloniasListado->map(fn ($colonia) => [
-        'nombre' => $colonia['nombre'],
-        'lat'    => $colonia['lat'],
-        'lng'    => $colonia['lng'],
-        'zoom'   => $colonia['zoom'] ?? 16,
+    $zonasListado = collect($zonas ?? []);
+    $zonasDataset = $zonasListado->map(fn ($zona) => [
+        'id'          => (string) ($zona['id'] ?? ''),
+        'nombre'      => $zona['nombre'] ?? 'Zona',
+        'municipio'   => $zona['municipio'] ?? null,
+        'lat'         => $zona['lat'] ?? null,
+        'lng'         => $zona['lng'] ?? null,
+        'tarifa_base' => (float) ($zona['tarifa_base'] ?? 0),
+        'zoom'        => $zona['zoom'] ?? 16,
     ]);
+    $municipiosListado = collect($municipios ?? $zonasDataset->pluck('municipio')->filter())->filter()->values();
     $mapaCentro = $mapaDefault ?? config('geografia.santo_tomas_default');
     $subtotalVista = $subtotalCarrito ?? collect($carrito ?? [])->reduce(function ($carry, $item) {
         $precio   = (float) ($item['precio'] ?? 0);
@@ -278,17 +282,28 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="coloniaSelect">Colonia o Barrio *</label>
-                    <select name="colonia" id="coloniaSelect" class="form-select" required>
-                        <option value="">Selecciona tu colonia o barrio</option>
-                        @foreach ($coloniasListado as $colonia)
-                            <option value="{{ $colonia['nombre'] }}" @selected(old('colonia')===$colonia['nombre'])>
-                                {{ $colonia['nombre'] }}
+                    <label class="form-label" for="municipioSelect">Municipio *</label>
+                    <select name="municipio" id="municipioSelect" class="form-select" required>
+                        <option value="">Selecciona el municipio</option>
+                        @foreach ($municipiosListado as $municipio)
+                            <option value="{{ $municipio }}" @selected(old('municipio')===$municipio)>{{ $municipio }}</option>
+                        @endforeach
+                    </select>
+                    @error('municipio') <span class="error-message">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="zonaSelect">Zona o barrio *</label>
+                    <select name="delivery_zone_id" id="zonaSelect" class="form-select" required data-old="{{ old('delivery_zone_id') }}">
+                        <option value="">Selecciona la zona de entrega</option>
+                        @foreach ($zonasListado as $zona)
+                            <option value="{{ $zona['id'] }}" data-municipio="{{ $zona['municipio'] }}" @selected(old('delivery_zone_id')==$zona['id'])>
+                                {{ $zona['nombre'] }} ({{ $zona['municipio'] }})
                             </option>
                         @endforeach
                     </select>
-                    @error('colonia') <span class="error-message">{{ $message }}</span> @enderror
-                    <span class="helper-text">Al elegir una colonia centraremos el mapa automáticamente en la zona seleccionada.</span>
+                    @error('delivery_zone_id') <span class="error-message">{{ $message }}</span> @enderror
+                    <span class="helper-text">Al elegir una zona centraremos el mapa y calcularemos la tarifa de entrega.</span>
                 </div>
 
                 <div class="form-group">
@@ -478,13 +493,15 @@
     }
     function cerrarModal(id){ const m=document.getElementById(id); if(m) m.style.display='none'; }
     function mostrarModalCarrito(){ abrirModal('modalCarrito'); }
-    const coloniaSelect = document.getElementById('coloniaSelect');
+    const municipioSelect = document.getElementById('municipioSelect');
+    const zonaSelect = document.getElementById('zonaSelect');
 
     function mostrarModalEntrega(){
         const d=document.querySelector('input[name="direccion"]').value.trim();
         const t=document.querySelector('input[name="telefono"]').value.trim();
-        const c=coloniaSelect ? coloniaSelect.value : '';
-        if(!d||!t||!c){ alert('Por favor, completa todos los campos obligatorios de entrega.'); return; }
+        const municipio = municipioSelect ? municipioSelect.value : '';
+        const zona = zonaSelect ? zonaSelect.value : '';
+        if(!d||!t||!municipio||!zona){ alert('Por favor, completa todos los campos obligatorios de entrega.'); return; }
         abrirModal('modalEntrega');
     }
 
@@ -507,7 +524,7 @@
 
     // --- Leaflet ---
     const baseCenter=@json($mapaCentro);
-    const coloniasData=@json($coloniasDataset);
+    const zonasData=@json($zonasDataset);
     const mapa=L.map('mapa').setView([baseCenter.lat, baseCenter.lng], baseCenter.zoom ?? 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapa);
     let marker;
@@ -530,12 +547,17 @@
         }
     })();
 
-    function centrarEnColonia(nombre){
-        const colonia=coloniasData.find(c=>c.nombre===nombre);
-        if(!colonia) return;
-        if(colonia.lat && colonia.lng){
-            const pos=L.latLng(colonia.lat, colonia.lng);
-            colocarMarcador(pos, colonia.zoom || 16);
+    function obtenerZonaPorId(id){
+        if(!id) return null;
+        return zonasData.find(z=>String(z.id)===String(id));
+    }
+
+    function centrarEnZona(id){
+        const zona=obtenerZonaPorId(id);
+        if(!zona) return;
+        if(zona.lat && zona.lng){
+            const pos=L.latLng(zona.lat, zona.lng);
+            colocarMarcador(pos, zona.zoom || 16);
         }
     }
 
@@ -549,6 +571,30 @@
             actualizarResumenEnvio();
         }
     }
+
+    if(municipioSelect){
+        municipioSelect.addEventListener('change',()=>{
+            poblarZonasPorMunicipio(municipioSelect.value);
+            if(zonaSelect){
+                zonaSelect.dataset.old='';
+                zonaSelect.value='';
+            }
+            actualizarResumenEnvio();
+        });
+    }
+
+    if(zonaSelect){
+        zonaSelect.addEventListener('change',()=>{
+            centrarEnZona(zonaSelect.value);
+            actualizarResumenEnvio();
+        });
+    }
+
+    poblarZonasPorMunicipio(municipioSelect ? municipioSelect.value : '');
+    if(zonaSelect && zonaSelect.value){
+        centrarEnZona(zonaSelect.value);
+    }
+    if(zonaSelect){ zonaSelect.dataset.old=''; }
 
     mapa.on('click',function(e){
         colocarMarcador(e.latlng, mapa.getZoom());

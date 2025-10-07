@@ -26,6 +26,10 @@
             <label>Precio:</label>
             <input type="number" step="0.01" name="precio" value="{{ $producto->precio }}" required>
 
+            <label>Tarifa de entrega (Q):</label>
+            <input type="number" step="0.01" min="0" max="500" name="delivery_price" value="{{ old('delivery_price', $producto->delivery_price) }}">
+            <small style="color:#6b7280;display:block;margin-top:4px;">Costo de envío aplicado cuando el supermercado gestiona la entrega de este producto.</small>
+
             <label>Stock:</label>
             <input type="number" name="stock" value="{{ $producto->stock }}" required>
 

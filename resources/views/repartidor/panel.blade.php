@@ -115,6 +115,15 @@
                                 <p><strong>Teléfono:</strong> {{ $cliente->telefono }}</p>
                             @endif
                             <p><strong>Producto:</strong> {{ optional($item->producto)->nombre ?? 'Producto' }} × {{ $item->cantidad }}</p>
+                            @if($item->pickup_address)
+                                <p><strong>Punto de recogida:</strong> {{ $item->pickup_address }}</p>
+                            @endif
+                            @if($item->pickup_contact || $item->pickup_phone)
+                                <p><strong>Contacto:</strong> {{ $item->pickup_contact }} {{ $item->pickup_phone ? '· '.$item->pickup_phone : '' }}</p>
+                            @endif
+                            @if($item->delivery_instructions)
+                                <p><strong>Indicaciones:</strong> {{ $item->delivery_instructions }}</p>
+                            @endif
                             <p><strong>Dirección:</strong> {{ $direccionTexto }}</p>
                             <p><strong>Método de pago:</strong> {{ $metodoPago }}</p>
                             <p><strong>Total del pedido:</strong> Q{{ number_format($totalPedido, 2) }}</p>

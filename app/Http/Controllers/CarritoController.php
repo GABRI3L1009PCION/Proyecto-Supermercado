@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Models\DeliveryZone;
 use App\Models\Categoria;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
@@ -149,16 +150,16 @@ class CarritoController extends Controller
             return redirect()->route('carrito.ver')->with('error', 'El carrito está vacío.');
         }
 
-        $coloniasDisponibles = collect(config('geografia.santo_tomas_colonias'))
-            ->pluck('nombre')
-            ->filter()
-            ->toArray();
+        $zones = DeliveryZone::activas()->orderBy('municipio')->orderBy('nombre')->get();
+        $zoneIds = $zones->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+        $municipiosDisponibles = $zones->pluck('municipio')->unique()->values()->toArray();
 
         $data = $request->validate([
             'direccion'      => ['required', 'string', 'max:255'],
             'telefono'       => ['required', 'string', 'max:30'],
             'referencia'     => ['nullable', 'string', 'max:255'],
-            'colonia'        => ['required', 'string', 'max:100', Rule::in($coloniasDisponibles)],
+            'municipio'      => ['required', 'string', Rule::in($municipiosDisponibles)],
+            'delivery_zone_id'=> ['required', 'integer', Rule::in($zoneIds)],
             'lat'            => ['nullable', 'numeric'],
             'lng'            => ['nullable', 'numeric'],
             'factura'        => ['required', 'in:si,no'],
@@ -220,7 +221,9 @@ class CarritoController extends Controller
             'descripcion' => $data['direccion'],
             'telefono'    => $data['telefono'],
             'referencia'  => $data['referencia'] ?? null,
-            'colonia'     => $data['colonia'],
+            'colonia'     => $zone->nombre,
+            'municipio'   => $zone->municipio,
+            'zona_id'     => $zone->id,
             'lat'         => $data['lat'] ?? null,
             'lng'         => $data['lng'] ?? null,
         ];
