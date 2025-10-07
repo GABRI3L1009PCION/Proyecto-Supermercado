@@ -64,7 +64,16 @@
     $metodo   = $metodoPago ?? ($pedido->metodo_pago ?? null);
 
     // Nuevas inicializaciones seguras
-    $delivery = $delivery ?? ['mode'=>null,'fee'=>0,'repartidor'=>null,'repartidor_id'=>null];
+    $delivery = $delivery ?? [
+        'mode' => null,
+        'fee'  => 0,
+        'repartidor' => null,
+        'repartidor_id' => null,
+        'pickup_contact' => null,
+        'pickup_phone' => null,
+        'pickup_address' => null,
+        'delivery_instructions' => null,
+    ];
     $deliveryLabels = $deliveryLabels ?? [];
     $deliveryInconsistent = $deliveryInconsistent ?? false;
     $facturacion = $facturacion ?? ['requiere'=>false,'nit'=>'CF','nombre'=>null,'direccion'=>null,'telefono'=>null];
@@ -125,6 +134,12 @@
                             {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER ? 'checked' : '' }}>
                         <label class="form-check-label" for="deliveryCourier">Repartidor aliado</label>
                     </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="delivery_mode" id="deliveryMarket"
+                               value="{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}"
+                            {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER ? 'checked' : '' }}>
+                        <label class="form-check-label" for="deliveryMarket">Repartidor del supermercado</label>
+                    </div>
                 </div>
 
                 <div class="col-lg-4 col-12">
@@ -137,6 +152,8 @@
                             </option>
                         @endforeach
                     </select>
+                    <small class="text-muted">Disponible para repartidores aliados o del supermercado.</small>
+                    @error('repartidor_id')<small class="text-danger d-block">{{ $message }}</small>@enderror
                 </div>
 
                 <div class="col-lg-4 col-12">
@@ -146,12 +163,41 @@
                 </div>
             </div>
 
+            <div class="row g-3 mt-2" id="marketFields" style="display:none;">
+                <div class="col-md-4 col-12">
+                    <label class="form-label" for="pickup_contact">Persona de contacto</label>
+                    <input type="text" class="form-control" id="pickup_contact" name="pickup_contact"
+                           value="{{ old('pickup_contact', $delivery['pickup_contact']) }}" maxlength="120">
+                    @error('pickup_contact')<small class="text-danger">{{ $message }}</small>@enderror
+                </div>
+                <div class="col-md-4 col-12">
+                    <label class="form-label" for="pickup_phone">Teléfono de contacto</label>
+                    <input type="text" class="form-control" id="pickup_phone" name="pickup_phone"
+                           value="{{ old('pickup_phone', $delivery['pickup_phone']) }}" maxlength="45">
+                    @error('pickup_phone')<small class="text-danger">{{ $message }}</small>@enderror
+                </div>
+                <div class="col-md-4 col-12">
+                    <label class="form-label" for="pickup_address">Dirección para recoger</label>
+                    <input type="text" class="form-control" id="pickup_address" name="pickup_address"
+                           value="{{ old('pickup_address', $delivery['pickup_address']) }}" maxlength="255">
+                    @error('pickup_address')<small class="text-danger">{{ $message }}</small>@enderror
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="delivery_instructions">Indicaciones para la entrega</label>
+                    <textarea class="form-control" id="delivery_instructions" name="delivery_instructions" rows="3" maxlength="500">{{ old('delivery_instructions', $delivery['delivery_instructions']) }}</textarea>
+                    <small class="text-muted">Comparte referencias para que el repartidor pueda recoger y entregar el pedido sin contratiempos.</small>
+                    @error('delivery_instructions')<small class="text-danger d-block">{{ $message }}</small>@enderror
+                </div>
+            </div>
+
             <div class="mt-3 d-flex flex-wrap gap-3 align-items-center">
                 <button type="submit" class="btn-vino"><i class="fas fa-save"></i> Guardar logística</button>
                 @if($delivery['mode'] === \App\Models\PedidoItem::DELIVERY_VENDOR_SELF)
                     <span class="badge bg-light text-dark">Entrega a cargo del vendedor</span>
                 @elseif($delivery['mode'] === \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER && $delivery['repartidor'])
                     <span class="badge bg-light text-dark">Asignado a: {{ $delivery['repartidor']->name }}</span>
+                @elseif($delivery['mode'] === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER && $delivery['repartidor'])
+                    <span class="badge bg-light text-dark">Repartidor del supermercado: {{ $delivery['repartidor']->name }}</span>
                 @endif
             </div>
         </form>
@@ -162,10 +208,16 @@
     document.addEventListener('DOMContentLoaded', () => {
         const radios = document.querySelectorAll('input[name="delivery_mode"]');
         const select = document.getElementById('repartidor_vendedor_select');
+        const marketFields = document.getElementById('marketFields');
         const toggle = () => {
-            if (!select) return;
             const checked = document.querySelector('input[name="delivery_mode"]:checked');
-            select.disabled = !(checked && checked.value === '{{ \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER }}');
+            const mode = checked ? checked.value : null;
+            if (select) {
+                select.disabled = !(mode === '{{ \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER }}' || mode === '{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}');
+            }
+            if (marketFields) {
+                marketFields.style.display = mode === '{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}' ? 'flex' : 'none';
+            }
         };
         radios.forEach(r => r.addEventListener('change', toggle));
         toggle();

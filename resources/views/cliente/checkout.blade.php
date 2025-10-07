@@ -133,6 +133,13 @@
         .pay-note{margin-top:10px;background:#f8fafc;border:1px dashed var(--borde);padding:12px;border-radius:10px;color:#475569;display:none}
         .pay-note.show{display:block}
 
+        /* Resumen de pago */
+        .pay-summary{margin-top:24px;padding:18px;border-radius:var(--radio);background:#fafafa;border:1px solid var(--borde);}
+        .summary-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:1rem;color:var(--vino-oscuro);}
+        .summary-row span:last-child{font-weight:700;}
+        .summary-row.summary-total{font-size:1.1rem;font-weight:800;color:var(--vino);margin-top:6px;}
+        .summary-note{margin-top:10px;font-size:.85rem;color:#6b7280;}
+
         /* Responsive */
         @media (min-width:768px){
             .checkout-wrapper{padding:24px;max-width:750px}
@@ -149,14 +156,26 @@
 </head>
 <body>
 @php
-    $coloniasListado = collect($colonias ?? config('geografia.santo_tomas_colonias'));
-    $coloniasDataset = $coloniasListado->map(fn ($colonia) => [
-        'nombre' => $colonia['nombre'],
-        'lat'    => $colonia['lat'],
-        'lng'    => $colonia['lng'],
-        'zoom'   => $colonia['zoom'] ?? 16,
+    $zonasListado = collect($zonas ?? []);
+    $zonasDataset = $zonasListado->map(fn ($zona) => [
+        'id'          => (string) ($zona['id'] ?? ''),
+        'nombre'      => $zona['nombre'] ?? 'Zona',
+        'municipio'   => $zona['municipio'] ?? null,
+        'lat'         => $zona['lat'] ?? null,
+        'lng'         => $zona['lng'] ?? null,
+        'tarifa_base' => (float) ($zona['tarifa_base'] ?? 0),
+        'zoom'        => $zona['zoom'] ?? 16,
     ]);
+    $municipiosListado = collect($municipios ?? $zonasDataset->pluck('municipio')->filter())->filter()->values();
     $mapaCentro = $mapaDefault ?? config('geografia.santo_tomas_default');
+    $subtotalVista = $subtotalCarrito ?? collect($carrito ?? [])->reduce(function ($carry, $item) {
+        $precio   = (float) ($item['precio'] ?? 0);
+        $cantidad = (int) ($item['cantidad'] ?? 0);
+        return $carry + ($precio * $cantidad);
+    }, 0.0);
+    $tarifaEnvioDefaultVista = $tarifaEnvioDefault ?? (config('geografia.tarifa_envio_default') ?? 0);
+    $cartDeliveryItemsVista = $cartDeliveryItems ?? [];
+    $vendorLabelsVista = $vendorLabels ?? [];
 @endphp
 <div class="checkout-wrapper">
     <div class="checkout-container">
@@ -229,7 +248,7 @@
                 @endforeach
             </div>
 
-            <div class="cart-total">Total: Q{{ number_format($total, 2) }}</div>
+            <div class="cart-total">Total: Q{{ number_format($subtotalVista, 2) }}</div>
 
             <div class="btn-group">
                 <a href="{{ route('cliente.productos') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Seguir comprando</a>
@@ -264,17 +283,28 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="coloniaSelect">Colonia o Barrio *</label>
-                    <select name="colonia" id="coloniaSelect" class="form-select" required>
-                        <option value="">Selecciona tu colonia o barrio</option>
-                        @foreach ($coloniasListado as $colonia)
-                            <option value="{{ $colonia['nombre'] }}" @selected(old('colonia')===$colonia['nombre'])>
-                                {{ $colonia['nombre'] }}
+                    <label class="form-label" for="municipioSelect">Municipio *</label>
+                    <select name="municipio" id="municipioSelect" class="form-select" required>
+                        <option value="">Selecciona el municipio</option>
+                        @foreach ($municipiosListado as $municipio)
+                            <option value="{{ $municipio }}" @selected(old('municipio')===$municipio)>{{ $municipio }}</option>
+                        @endforeach
+                    </select>
+                    @error('municipio') <span class="error-message">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="zonaSelect">Zona o barrio *</label>
+                    <select name="delivery_zone_id" id="zonaSelect" class="form-select" required data-old="{{ old('delivery_zone_id') }}">
+                        <option value="">Selecciona la zona de entrega</option>
+                        @foreach ($zonasListado as $zona)
+                            <option value="{{ $zona['id'] }}" data-municipio="{{ $zona['municipio'] }}" @selected(old('delivery_zone_id')==$zona['id'])>
+                                {{ $zona['nombre'] }} ({{ $zona['municipio'] }})
                             </option>
                         @endforeach
                     </select>
-                    @error('colonia') <span class="error-message">{{ $message }}</span> @enderror
-                    <span class="helper-text">Al elegir una colonia centraremos el mapa automáticamente en la zona seleccionada.</span>
+                    @error('delivery_zone_id') <span class="error-message">{{ $message }}</span> @enderror
+                    <span class="helper-text">Al elegir una zona centraremos el mapa y calcularemos la tarifa de entrega.</span>
                 </div>
 
                 <div class="form-group">
@@ -342,6 +372,23 @@
 
                 <!-- Nota dinámica -->
                 <div id="payNote" class="pay-note"></div>
+
+                <div class="pay-summary" aria-live="polite">
+                    <div class="summary-row">
+                        <span>Subtotal productos</span>
+                        <span id="summarySubtotal">Q{{ number_format($subtotalVista, 2) }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Costo de entrega</span>
+                        <span id="summaryEnvio">Q0.00</span>
+                    </div>
+                    <div class="summary-row summary-total">
+                        <span>Total a pagar</span>
+                        <span id="summaryTotal">Q{{ number_format($subtotalVista, 2) }}</span>
+                    </div>
+                    <p class="summary-note" id="shippingNote">Selecciona tu municipio y zona para estimar la tarifa de entrega.</p>
+                    <input type="hidden" name="costo_envio" id="costo_envio" value="{{ old('costo_envio', '0') }}">
+                </div>
 
                 <hr style="margin:24px 0;border:none;border-top:1px solid var(--borde)">
 
@@ -426,7 +473,7 @@
             <strong>Banco:</strong> (Banrural)<br>
             <strong>Cuenta:</strong> (0000000000, Monetaria)<br>
             <strong>A nombre de:</strong> Supermercado Atlantia<br>
-            <strong>Referencia:</strong> Pedido #<span id="refPedido">{{ $pedidoId ?? '—' }}</span><br><br>
+            <strong>Referencia:</strong> Se asignará después de confirmar tu pedido.<br><br>
             Una vez confirmado el pago, procesaremos tu pedido.
         </p>
         <button class="btn btn-primary" onclick="cerrarModal('modalTransferencia')">Entendido</button>
@@ -447,13 +494,15 @@
     }
     function cerrarModal(id){ const m=document.getElementById(id); if(m) m.style.display='none'; }
     function mostrarModalCarrito(){ abrirModal('modalCarrito'); }
-    const coloniaSelect = document.getElementById('coloniaSelect');
+    const municipioSelect = document.getElementById('municipioSelect');
+    const zonaSelect = document.getElementById('zonaSelect');
 
     function mostrarModalEntrega(){
         const d=document.querySelector('input[name="direccion"]').value.trim();
         const t=document.querySelector('input[name="telefono"]').value.trim();
-        const c=coloniaSelect ? coloniaSelect.value : '';
-        if(!d||!t||!c){ alert('Por favor, completa todos los campos obligatorios de entrega.'); return; }
+        const municipio = municipioSelect ? municipioSelect.value : '';
+        const zona = zonaSelect ? zonaSelect.value : '';
+        if(!d||!t||!municipio||!zona){ alert('Por favor, completa todos los campos obligatorios de entrega.'); return; }
         abrirModal('modalEntrega');
     }
 
@@ -470,12 +519,13 @@
         document.querySelectorAll('.step-section').forEach(s=>s.classList.remove('active'));
         document.getElementById('paso'+n).classList.add('active'); setStepper(n);
         if(n===2 && focusMapa){ setTimeout(()=>{ mapa.invalidateSize(); if(marker) mapa.setView(marker.getLatLng(), mapa.getZoom()); },100); }
+        if(n===3){ actualizarResumenEnvio(); }
         window.scrollTo({top:0,behavior:'smooth'});
     }
 
     // --- Leaflet ---
     const baseCenter=@json($mapaCentro);
-    const coloniasData=@json($coloniasDataset);
+    const zonasData=@json($zonasDataset);
     const mapa=L.map('mapa').setView([baseCenter.lat, baseCenter.lng], baseCenter.zoom ?? 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapa);
     let marker;
@@ -498,21 +548,69 @@
         }
     })();
 
-    function centrarEnColonia(nombre){
-        const colonia=coloniasData.find(c=>c.nombre===nombre);
-        if(!colonia) return;
-        if(colonia.lat && colonia.lng){
-            const pos=L.latLng(colonia.lat, colonia.lng);
-            colocarMarcador(pos, colonia.zoom || 16);
+    function obtenerZonaPorId(id){
+        if(!id) return null;
+        return zonasData.find(z=>String(z.id)===String(id));
+    }
+
+    function centrarEnZona(id){
+        const zona=obtenerZonaPorId(id);
+        if(!zona) return;
+        if(zona.lat && zona.lng){
+            const pos=L.latLng(zona.lat, zona.lng);
+            colocarMarcador(pos, zona.zoom || 16);
         }
     }
 
-    if(coloniaSelect){
-        coloniaSelect.addEventListener('change',()=>centrarEnColonia(coloniaSelect.value));
-        if(coloniaSelect.value){
-            centrarEnColonia(coloniaSelect.value);
+    function poblarZonasPorMunicipio(municipio){
+        if(!zonaSelect) return;
+        const opcionesPrevias = zonaSelect.querySelectorAll('option[data-municipio]');
+        opcionesPrevias.forEach(opt => opt.remove());
+
+        const selectedActual = zonaSelect.value || zonaSelect.dataset.old || '';
+        let found = false;
+
+        zonasData.filter(z => !municipio || z.municipio === municipio)
+            .forEach(z => {
+                const option=document.createElement('option');
+                option.value=z.id;
+                option.dataset.municipio=z.municipio || '';
+                option.textContent=`${z.nombre}${z.municipio ? ' ('+z.municipio+')' : ''}`;
+                if(String(selectedActual)===String(z.id)){
+                    option.selected=true;
+                    found=true;
+                }
+                zonaSelect.appendChild(option);
+            });
+
+        if(!found){
+            zonaSelect.value='';
         }
     }
+
+    if(municipioSelect){
+        municipioSelect.addEventListener('change',()=>{
+            poblarZonasPorMunicipio(municipioSelect.value);
+            if(zonaSelect){
+                zonaSelect.dataset.old='';
+                zonaSelect.value='';
+            }
+            actualizarResumenEnvio();
+        });
+    }
+
+    if(zonaSelect){
+        zonaSelect.addEventListener('change',()=>{
+            centrarEnZona(zonaSelect.value);
+            actualizarResumenEnvio();
+        });
+    }
+
+    poblarZonasPorMunicipio(municipioSelect ? municipioSelect.value : '');
+    if(zonaSelect && zonaSelect.value){
+        centrarEnZona(zonaSelect.value);
+    }
+    if(zonaSelect){ zonaSelect.dataset.old=''; }
 
     mapa.on('click',function(e){
         colocarMarcador(e.latlng, mapa.getZoom());
@@ -529,11 +627,59 @@
     // --- Pago: UI + nota dinámica ---
     const payGrid=document.getElementById('payGrid');
     const payNote=document.getElementById('payNote');
+    const subtotalCarrito=parseFloat(@json($subtotalVista));
+    const cartDeliveryItems=@json($cartDeliveryItemsVista);
+    const vendorLabels=@json($vendorLabelsVista);
+    const tarifaEnvioDefault=parseFloat(@json($tarifaEnvioDefaultVista));
+    const summarySubtotal=document.getElementById('summarySubtotal');
+    const summaryEnvio=document.getElementById('summaryEnvio');
+    const summaryTotal=document.getElementById('summaryTotal');
+    const shippingNote=document.getElementById('shippingNote');
+    const envioInput=document.getElementById('costo_envio');
     const notes={
         efectivo:'El cobro se realizará al momento de recibir tu pedido. ¡Ten el efectivo listo!',
         tarjeta:'Pago con tarjeta mediante un proceso seguro. Tras confirmar, recibirás un enlace o checkout para completar el pago.',
         transferencia:'Realiza una transferencia o depósito y conserva tu comprobante. Procesaremos tu pedido al confirmar el pago.'
     };
+    function calcularEnvioSeleccionado(){
+        const zoneId = zonaSelect ? zonaSelect.value : '';
+        const zona = obtenerZonaPorId(zoneId);
+        const base = zona && zona.tarifa_base !== undefined ? parseFloat(zona.tarifa_base) : tarifaEnvioDefault;
+        const detalle = {};
+
+        cartDeliveryItems.forEach(item => {
+            const key = item.vendor_key || 'market';
+            let fee = item.delivery_price !== null ? parseFloat(item.delivery_price) : base;
+            if(!Number.isFinite(fee)) fee = base;
+            if(!detalle[key] || fee > detalle[key]) {
+                detalle[key] = fee;
+            }
+        });
+
+        const total = Object.values(detalle).reduce((sum, fee) => sum + (Number.isFinite(fee) ? fee : 0), 0);
+
+        return { total, detalle, zona };
+    }
+    function formatearMoneda(valor){
+        const numero=Number(valor||0);
+        return 'Q'+numero.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+    function actualizarResumenEnvio(){
+        const { total: envio, detalle, zona } = calcularEnvioSeleccionado();
+        if(summarySubtotal) summarySubtotal.textContent=formatearMoneda(subtotalCarrito);
+        if(summaryEnvio) summaryEnvio.textContent=formatearMoneda(envio);
+        if(summaryTotal) summaryTotal.textContent=formatearMoneda(subtotalCarrito+envio);
+        if(envioInput) envioInput.value=Number(envio||0).toFixed(2);
+        if(shippingNote){
+            if(zona){
+                const desglose = Object.entries(detalle).map(([key, fee]) => `${vendorLabels[key] || 'Entrega'}: ${formatearMoneda(fee)}`);
+                shippingNote.innerHTML = `Zona seleccionada: <strong>${zona.nombre}</strong>${desglose.length ? '<br>'+desglose.join('<br>') : ''}`;
+            } else {
+                shippingNote.textContent = 'Selecciona tu municipio y zona para estimar la tarifa de entrega.';
+            }
+            shippingNote.style.display = 'block';
+        }
+    }
     function updatePayUI(){
         document.querySelectorAll('.pay-option').forEach(card=>{
             const input=card.querySelector('input[type="radio"]');
@@ -549,6 +695,7 @@
     });
     document.querySelectorAll('input[name="metodo_pago"]').forEach(r=>r.addEventListener('change',updatePayUI));
     updatePayUI();
+    actualizarResumenEnvio();
 
     // --- Abrir paso correcto si hay errores ---
     @if ($errors->any())
