@@ -92,13 +92,13 @@ class Pedido extends Model
         return $this->attributes['codigo'] ?? 'PED-' . $this->id;
     }
 
-    // Método para verificar si el pedido pertenece al usuario autenticado
+    // Verificar si el pedido pertenece al usuario autenticado
     public function perteneceAlUsuario($userId)
     {
         return $this->user_id == $userId;
     }
 
-    // Método para obtener la dirección formateada
+    // Obtener la dirección formateada
     public function getDireccionFormateadaAttribute()
     {
         if (!$this->direccion_envio || !is_array($this->direccion_envio)) {
@@ -106,22 +106,15 @@ class Pedido extends Model
         }
 
         $dir = $this->direccion_envio;
-        $direccion = '';
-
         $componentes = [];
+
         $descripcion = trim((string) ($dir['descripcion'] ?? ''));
         $colonia     = trim((string) ($dir['colonia'] ?? ''));
         $municipio   = trim((string) ($dir['municipio'] ?? ''));
 
-        if ($descripcion !== '') {
-            $componentes[] = $descripcion;
-        }
-        if ($colonia !== '') {
-            $componentes[] = $colonia;
-        }
-        if ($municipio !== '') {
-            $componentes[] = $municipio;
-        }
+        if ($descripcion !== '') $componentes[] = $descripcion;
+        if ($colonia !== '')     $componentes[] = $colonia;
+        if ($municipio !== '')   $componentes[] = $municipio;
 
         $direccion = implode(', ', $componentes);
 
@@ -135,6 +128,7 @@ class Pedido extends Model
         return $direccion !== '' ? $direccion : 'Dirección no especificada';
     }
 
+    // Sincroniza el costo de envío total basado en los items
     public function syncEnvioFromItems(): void
     {
         $envio = (float) $this->items()->sum('delivery_fee');
@@ -143,6 +137,7 @@ class Pedido extends Model
         $this->save();
     }
 
+    // Actualiza el estado global según los items
     public function refreshEstadoGlobalFromItems(): string
     {
         $statuses = $this->items()->pluck('fulfillment_status');
@@ -166,6 +161,7 @@ class Pedido extends Model
         return $estado;
     }
 
+    // Conversión automática de JSON -> array
     protected function direccionEnvio(): Attribute
     {
         return Attribute::make(
@@ -180,40 +176,7 @@ class Pedido extends Model
         );
     }
 
-    protected function normalizeJson($value): ?array
-    {
-        if (is_array($value)) {
-            return $value;
-        }
-
-        if (is_object($value)) {
-            return (array) $value;
-        }
-
-        if (is_string($value) && $value !== '') {
-            $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
-        }
-
-        return null;
-    }
-
-    protected function direccionEnvio(): Attribute
-    {
-        return Attribute::make(
-            get: fn ($value) => $this->normalizeJson($value),
-        );
-    }
-
-    protected function facturacion(): Attribute
-    {
-        return Attribute::make(
-            get: fn ($value) => $this->normalizeJson($value),
-        );
-    }
-
+    // Normalizador de JSON
     protected function normalizeJson($value): ?array
     {
         if (is_array($value)) {
