@@ -4,31 +4,111 @@ namespace App\Http\Controllers\Vendedor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PedidoController extends Controller
 {
+    /**
+     * Listado de pedidos que contienen productos del vendedor autenticado.
+     */
+    public function index(Request $request)
+    {
+        $vendorId = $this->requireVendorId();
+
+        $estado        = $request->query('estado');
+        $deliveryMode  = $request->query('delivery_mode');
+        $busqueda      = trim((string) $request->query('q', ''));
+        $estadoValid   = array_keys($this->statusLabels());
+        $deliveryValid = array_keys(PedidoItem::deliveryModeLabels());
+
+        $pedidosQuery = Pedido::query()
+            ->with([
+                'cliente:id,name,telefono,email',
+                'items' => function ($q) use ($vendorId, $estado, $deliveryMode, $estadoValid, $deliveryValid) {
+                    $q->where('vendor_id', $vendorId)
+                        ->when($estado && in_array($estado, $estadoValid, true), fn ($builder) => $builder->where('fulfillment_status', $estado))
+                        ->when($deliveryMode && in_array($deliveryMode, $deliveryValid, true), fn ($builder) => $builder->where('delivery_mode', $deliveryMode))
+                        ->with([
+                            'producto:id,nombre,slug,vendor_id',
+                            'repartidor:id,name,telefono',
+                        ]);
+                },
+            ])
+            ->whereHas('items', function ($q) use ($vendorId, $estado, $deliveryMode, $estadoValid, $deliveryValid) {
+                $q->where('vendor_id', $vendorId)
+                    ->when($estado && in_array($estado, $estadoValid, true), fn ($builder) => $builder->where('fulfillment_status', $estado))
+                    ->when($deliveryMode && in_array($deliveryMode, $deliveryValid, true), fn ($builder) => $builder->where('delivery_mode', $deliveryMode));
+            })
+            ->latest();
+
+        if ($busqueda !== '') {
+            $pedidosQuery->where(function ($q) use ($busqueda) {
+                $q->where('codigo', 'like', "%{$busqueda}%")
+                    ->orWhereHas('cliente', function ($cliente) use ($busqueda) {
+                        $cliente->where('name', 'like', "%{$busqueda}%")
+                            ->orWhere('email', 'like', "%{$busqueda}%")
+                            ->orWhere('telefono', 'like', "%{$busqueda}%");
+                    });
+            });
+        }
+
+        $pedidos = $pedidosQuery->paginate(10)->withQueryString();
+
+        $statsBase = PedidoItem::query()->where('vendor_id', $vendorId);
+        $stats = [
+            'total'      => (clone $statsBase)->count(),
+            'pendientes' => (clone $statsBase)->whereIn('fulfillment_status', [
+                PedidoItem::ESTADO_ACEPTADO,
+                PedidoItem::ESTADO_PREPARANDO,
+            ])->count(),
+            'listos'     => (clone $statsBase)->where('fulfillment_status', PedidoItem::ESTADO_LISTO)->count(),
+            'entregados' => (clone $statsBase)->where('fulfillment_status', PedidoItem::ESTADO_ENTREGADO)->count(),
+        ];
+
+        $deliveryStats = [
+            PedidoItem::DELIVERY_VENDOR_SELF    => (clone $statsBase)->where('delivery_mode', PedidoItem::DELIVERY_VENDOR_SELF)->count(),
+            PedidoItem::DELIVERY_VENDOR_COURIER => (clone $statsBase)->where('delivery_mode', PedidoItem::DELIVERY_VENDOR_COURIER)->count(),
+            PedidoItem::DELIVERY_MARKET_COURIER => (clone $statsBase)->where('delivery_mode', PedidoItem::DELIVERY_MARKET_COURIER)->count(),
+        ];
+
+        return view('Vendedor.pedidos.index', [
+            'pedidos'        => $pedidos,
+            'stats'          => $stats,
+            'deliveryStats'  => $deliveryStats,
+            'estadoActual'   => $estado,
+            'deliveryActual' => $deliveryMode,
+            'busqueda'       => $busqueda,
+            'estadoLabels'   => $this->statusLabels(),
+            'deliveryLabels' => PedidoItem::deliveryModeLabels(),
+        ]);
+    }
+
     /**
      * Mostrar un pedido al vendedor (solo sus ítems).
      */
     public function show(Pedido $pedido)
     {
-        $vendorId = optional(auth()->user()->vendor)->id;
-        abort_if(!$vendorId, 403, 'No tienes perfil de vendedor activo.');
+        $vendorId = $this->requireVendorId();
 
-        // Debe existir al menos 1 ítem de este vendor
         abort_unless(
             $pedido->items()->where('vendor_id', $vendorId)->exists(),
             403,
             'No puedes ver este pedido.'
         );
 
-        // Carga relaciones y filtra ítems del vendor
         $pedido->load([
             'cliente:id,name,email,telefono',
             'items' => function ($q) use ($vendorId) {
                 $q->where('vendor_id', $vendorId)
-                    ->with('producto:id,nombre,slug,vendor_id'); // sin "codigo"
+                    ->with([
+                        'producto:id,nombre,slug,vendor_id',
+                        'repartidor:id,name,telefono',
+                    ]);
             },
         ]);
 
@@ -70,8 +150,7 @@ class PedidoController extends Controller
      */
     public function facturaPdf(Pedido $pedido)
     {
-        $vendorId = optional(auth()->user()->vendor)->id;
-        abort_if(!$vendorId, 403);
+        $vendorId = $this->requireVendorId();
         abort_unless($pedido->items()->where('vendor_id', $vendorId)->exists(), 403);
 
         $pedido->load([
@@ -83,7 +162,7 @@ class PedidoController extends Controller
         ]);
 
         $items    = $pedido->items;
-        $subtotal = round($items->sum(fn($i) => (float)$i->precio_unitario * (int)$i->cantidad), 2);
+        $subtotal = round($items->sum(fn($i) => (float) $i->precio_unitario * (int) $i->cantidad), 2);
         $iva      = round($subtotal * 0.12, 2);
         $total    = round($subtotal + $iva, 2);
 
@@ -97,12 +176,11 @@ class PedidoController extends Controller
         ];
 
         $logoBase64 = file_exists($empresa['logo'])
-            ? 'data:image/png;base64,'.base64_encode(file_get_contents($empresa['logo']))
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($empresa['logo']))
             : null;
 
-        // Simulación FEL
         $serie       = 'A';
-        $numero      = str_pad((string)$pedido->id, 8, '0', STR_PAD_LEFT);
+        $numero      = str_pad((string) $pedido->id, 8, '0', STR_PAD_LEFT);
         $nitReceptor = data_get($pedido->facturacion, 'nit', 'CF');
 
         $pdf = Pdf::loadView('vendedor.pdf.factura_sat', compact(
@@ -118,8 +196,7 @@ class PedidoController extends Controller
      */
     public function comprobantePdf(Pedido $pedido)
     {
-        $vendorId = optional(auth()->user()->vendor)->id;
-        abort_if(!$vendorId, 403);
+        $vendorId = $this->requireVendorId();
         abort_unless($pedido->items()->where('vendor_id', $vendorId)->exists(), 403);
 
         $pedido->load([
@@ -131,7 +208,7 @@ class PedidoController extends Controller
         ]);
 
         $items    = $pedido->items;
-        $subtotal = round($items->sum(fn($i) => (float)$i->precio_unitario * (int)$i->cantidad), 2);
+        $subtotal = round($items->sum(fn($i) => (float) $i->precio_unitario * (int) $i->cantidad), 2);
         $iva      = round($subtotal * 0.12, 2);
         $total    = round($subtotal + $iva, 2);
 
@@ -145,7 +222,7 @@ class PedidoController extends Controller
         ];
 
         $logoBase64 = file_exists($empresa['logo'])
-            ? 'data:image/png;base64,'.base64_encode(file_get_contents($empresa['logo']))
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($empresa['logo']))
             : null;
 
         $pdf = Pdf::loadView('vendedor.pdf.comprobante', compact(
@@ -153,5 +230,82 @@ class PedidoController extends Controller
         ))->setPaper('letter', 'portrait');
 
         return $pdf->stream("comprobante-pedido-{$pedido->id}.pdf");
+    }
+
+    /**
+     * Compatibilidad: aceptar un item desde rutas antiguas.
+     */
+    public function aceptarItem(PedidoItem $item): RedirectResponse
+    {
+        return $this->updateLegacyItemStatus($item, PedidoItem::ESTADO_ACEPTADO, 'Ítem aceptado correctamente.');
+    }
+
+    /**
+     * Compatibilidad: rechazar un item desde rutas antiguas.
+     */
+    public function rechazarItem(PedidoItem $item): RedirectResponse
+    {
+        return $this->updateLegacyItemStatus($item, PedidoItem::ESTADO_RECHAZADO, 'Ítem rechazado correctamente.');
+    }
+
+    /**
+     * Compatibilidad: actualizar el estado desde formularios anteriores.
+     */
+    public function actualizarEstado(Request $request, PedidoItem $item): RedirectResponse
+    {
+        $request->validate([
+            'estado' => ['required', Rule::in(array_keys($this->statusLabels()))],
+        ]);
+
+        return $this->updateLegacyItemStatus($item, $request->estado, 'Estado actualizado correctamente.');
+    }
+
+    protected function updateLegacyItemStatus(PedidoItem $item, string $estado, string $mensaje): RedirectResponse
+    {
+        $vendorId = $this->ensureOwnsItem($item);
+
+        if ($item->fulfillment_status === PedidoItem::ESTADO_ENTREGADO && $estado !== PedidoItem::ESTADO_ENTREGADO) {
+            return back()->with('error', 'Este ítem ya fue entregado y no puede modificarse.');
+        }
+
+        $item->fulfillment_status = $estado;
+        $item->save();
+
+        $pedido = $item->pedido;
+        if ($pedido) {
+            $pedido->refreshEstadoGlobalFromItems();
+        }
+
+        return back()->with('ok', $mensaje)->with('vendor_id', $vendorId);
+    }
+
+    protected function ensureOwnsItem(PedidoItem $item): int
+    {
+        $vendorId = $this->requireVendorId();
+        $ownerId  = $item->vendor_id ?? optional($item->producto)->vendor_id;
+
+        abort_unless((int) $ownerId === (int) $vendorId, 403, 'No tienes permiso para gestionar este ítem.');
+
+        return $vendorId;
+    }
+
+    protected function requireVendorId(): int
+    {
+        $vendorId = optional(auth()->user()->vendor)->id;
+        abort_if(!$vendorId, 403, 'No tienes perfil de vendedor activo.');
+
+        return (int) $vendorId;
+    }
+
+    protected function statusLabels(): array
+    {
+        return [
+            PedidoItem::ESTADO_ACEPTADO   => 'Aceptado',
+            PedidoItem::ESTADO_PREPARANDO => 'Preparando',
+            PedidoItem::ESTADO_LISTO      => 'Listo para entregar',
+            PedidoItem::ESTADO_ENTREGADO  => 'Entregado',
+            PedidoItem::ESTADO_RECHAZADO  => 'Rechazado',
+            PedidoItem::ESTADO_CANCELADO  => 'Cancelado',
+        ];
     }
 }

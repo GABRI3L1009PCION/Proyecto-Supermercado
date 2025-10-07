@@ -175,12 +175,15 @@
                         <div class="pedido-info"><i class="fas fa-money-check-alt"></i> {{ ucfirst(str_replace('_',' ', $pedido->metodo_pago ?? 'efectivo')) }}</div>
 
                         <div class="pedido-acciones">
-                            <button class="btn btn-asignar" onclick="abrirModalAsignar({{ $pedido->id }})">
+                            <button type="button" class="btn btn-asignar" onclick="abrirModalAsignar({{ $pedido->id }})" {{ $itemsSuper->isEmpty() ? 'disabled' : '' }}>
                                 <i class="fas fa-user-plus"></i> Asignar
                             </button>
                             <button class="btn btn-detalles" onclick="abrirModalDetalles({{ $pedido->id }})">
                                 <i class="fas fa-eye"></i> Ver
                             </button>
+                            @if($itemsSuper->isEmpty())
+                                <small class="text-muted">No hay productos del supermercado en este pedido.</small>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -304,6 +307,12 @@
                     </select>
                 </div>
 
+                <div class="form-group">
+                    <label for="delivery_fee_input">Tarifa de entrega (Q)</label>
+                    <input type="number" name="delivery_fee" id="delivery_fee_input" step="0.01" min="0" max="500" value="0">
+                    <small style="display:block;color:#6b7280;margin-top:6px;">Se sumará al total del cliente para los productos del supermercado.</small>
+                </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-cancel" onclick="cerrarModal('modalAsignar')">Cancelar</button>
                     <button type="submit" class="btn btn-confirm">Asignar Repartidor</button>
@@ -340,6 +349,15 @@
         document.getElementById('pedidoId').value = pedidoId;
         const form = document.getElementById('formAsignar');
         form.action = ASIGNAR_URL_TEMPLATE.replace('__ID__', pedidoId);
+        const pedido = PEDIDOS_DATA.find(p => p.id === pedidoId);
+        const feeInput = document.getElementById('delivery_fee_input');
+        if (feeInput) {
+            let fee = 0;
+            if (pedido && pedido.items.length) {
+                fee = pedido.items[0].delivery_fee || 0;
+            }
+            feeInput.value = (Math.round(fee * 100) / 100).toFixed(2);
+        }
         document.getElementById('modalAsignar').style.display = 'flex';
     }
 

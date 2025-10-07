@@ -9,6 +9,7 @@ use App\Models\PedidoItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class CarritoController extends Controller
 {
@@ -84,7 +85,10 @@ class CarritoController extends Controller
             return redirect()->route('carrito.ver')->with('error', 'El carrito está vacío.');
         }
 
-        return view('cliente.checkout', compact('carrito'));
+        $colonias = config('geografia.santo_tomas_colonias');
+        $mapaDefault = config('geografia.santo_tomas_default');
+
+        return view('cliente.checkout', compact('carrito', 'colonias', 'mapaDefault'));
     }
 
     public function confirmarCheckout(Request $request)
@@ -94,11 +98,16 @@ class CarritoController extends Controller
             return redirect()->route('carrito.ver')->with('error', 'El carrito está vacío.');
         }
 
+        $coloniasDisponibles = collect(config('geografia.santo_tomas_colonias'))
+            ->pluck('nombre')
+            ->filter()
+            ->toArray();
+
         $data = $request->validate([
             'direccion'      => ['required', 'string', 'max:255'],
             'telefono'       => ['required', 'string', 'max:30'],
             'referencia'     => ['nullable', 'string', 'max:255'],
-            'colonia'        => ['required', 'string', 'max:100'],
+            'colonia'        => ['required', 'string', 'max:100', Rule::in($coloniasDisponibles)],
             'lat'            => ['nullable', 'numeric'],
             'lng'            => ['nullable', 'numeric'],
             'factura'        => ['required', 'in:si,no'],

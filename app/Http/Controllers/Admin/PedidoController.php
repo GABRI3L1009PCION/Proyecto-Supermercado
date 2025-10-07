@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pedido;
+use App\Models\PedidoItem;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PedidoController extends Controller
 {
@@ -50,8 +52,12 @@ class PedidoController extends Controller
 
     public function asignarRepartidor(Request $request, $id)
     {
-        $request->validate([
-            'repartidor_id' => 'required|exists:users,id'
+        $data = $request->validate([
+            'repartidor_id' => [
+                'required',
+                Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'repartidor')->where('estado', 'activo')),
+            ],
+            'delivery_fee'  => ['nullable', 'numeric', 'min:0', 'max:500'],
         ]);
 
         $pedido = Pedido::findOrFail($id);
@@ -59,7 +65,11 @@ class PedidoController extends Controller
         $pedido->estado_global = 'preparando';
         $pedido->save();
 
-        return redirect()->route('admin.pedidos.index')->with('success', 'Repartidor asignado correctamente.');
+        $pedido->refresh();
+        $pedido->syncEnvioFromItems();
+        $pedido->refreshEstadoGlobalFromItems();
+
+        return redirect()->route('admin.pedidos.index')->with('success', 'Repartidor asignado correctamente a los productos del supermercado.');
     }
 
     public function actualizarEstado(Request $request, $id)

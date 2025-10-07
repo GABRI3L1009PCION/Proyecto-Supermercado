@@ -19,6 +19,8 @@ class PedidoItem extends Model
         'cantidad',
         'precio_unitario',
         'fulfillment_status',
+        'delivery_mode',
+        'delivery_fee',
         'repartidor_id',
         'justificacion',
     ];
@@ -26,6 +28,7 @@ class PedidoItem extends Model
     protected $casts = [
         'precio_unitario' => 'decimal:2',
         'cantidad'        => 'integer',
+        'delivery_fee'    => 'decimal:2',
     ];
 
     // Estados
@@ -35,6 +38,22 @@ class PedidoItem extends Model
     const ESTADO_ENTREGADO   = 'delivered';
     const ESTADO_RECHAZADO   = 'rejected';
     const ESTADO_CANCELADO   = 'canceled';
+
+    // Modos de entrega
+    const DELIVERY_PENDING        = 'pending';
+    const DELIVERY_VENDOR_SELF    = 'vendor_self';
+    const DELIVERY_VENDOR_COURIER = 'vendor_courier';
+    const DELIVERY_MARKET_COURIER = 'market_courier';
+
+    public static function deliveryModeLabels(): array
+    {
+        return [
+            self::DELIVERY_PENDING        => 'Pendiente de asignación',
+            self::DELIVERY_VENDOR_SELF    => 'Entrega directa del vendedor',
+            self::DELIVERY_VENDOR_COURIER => 'Repartidor asignado por vendedor',
+            self::DELIVERY_MARKET_COURIER => 'Repartidor del supermercado',
+        ];
+    }
 
     /** Relaciones */
     public function pedido(): BelongsTo
@@ -151,6 +170,12 @@ class PedidoItem extends Model
             // Si no vino precio_unitario, usar el precio del producto
             if (empty($item->precio_unitario) && $item->producto) {
                 $item->precio_unitario = $item->producto->precio;
+            }
+            if (empty($item->delivery_mode)) {
+                $item->delivery_mode = self::DELIVERY_PENDING;
+            }
+            if ($item->delivery_fee === null) {
+                $item->delivery_fee = 0;
             }
         });
     }
