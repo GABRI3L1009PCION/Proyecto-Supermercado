@@ -133,6 +133,13 @@
         .pay-note{margin-top:10px;background:#f8fafc;border:1px dashed var(--borde);padding:12px;border-radius:10px;color:#475569;display:none}
         .pay-note.show{display:block}
 
+        /* Resumen de pago */
+        .pay-summary{margin-top:24px;padding:18px;border-radius:var(--radio);background:#fafafa;border:1px solid var(--borde);}
+        .summary-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:1rem;color:var(--vino-oscuro);}
+        .summary-row span:last-child{font-weight:700;}
+        .summary-row.summary-total{font-size:1.1rem;font-weight:800;color:var(--vino);margin-top:6px;}
+        .summary-note{margin-top:10px;font-size:.85rem;color:#6b7280;}
+
         /* Responsive */
         @media (min-width:768px){
             .checkout-wrapper{padding:24px;max-width:750px}
@@ -157,6 +164,13 @@
         'zoom'   => $colonia['zoom'] ?? 16,
     ]);
     $mapaCentro = $mapaDefault ?? config('geografia.santo_tomas_default');
+    $subtotalVista = $subtotalCarrito ?? collect($carrito ?? [])->reduce(function ($carry, $item) {
+        $precio   = (float) ($item['precio'] ?? 0);
+        $cantidad = (int) ($item['cantidad'] ?? 0);
+        return $carry + ($precio * $cantidad);
+    }, 0.0);
+    $tarifasEnvioVista = $tarifasEnvio ?? [];
+    $tarifaEnvioDefaultVista = $tarifaEnvioDefault ?? (config('geografia.tarifa_envio_default') ?? 0);
 @endphp
 <div class="checkout-wrapper">
     <div class="checkout-container">
@@ -229,7 +243,7 @@
                 @endforeach
             </div>
 
-            <div class="cart-total">Total: Q{{ number_format($total, 2) }}</div>
+            <div class="cart-total">Total: Q{{ number_format($subtotalVista, 2) }}</div>
 
             <div class="btn-group">
                 <a href="{{ route('cliente.productos') }}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Seguir comprando</a>
@@ -343,6 +357,23 @@
                 <!-- Nota dinámica -->
                 <div id="payNote" class="pay-note"></div>
 
+                <div class="pay-summary" aria-live="polite">
+                    <div class="summary-row">
+                        <span>Subtotal productos</span>
+                        <span id="summarySubtotal">Q{{ number_format($subtotalVista, 2) }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Costo de entrega</span>
+                        <span id="summaryEnvio">Q0.00</span>
+                    </div>
+                    <div class="summary-row summary-total">
+                        <span>Total a pagar</span>
+                        <span id="summaryTotal">Q{{ number_format($subtotalVista, 2) }}</span>
+                    </div>
+                    <p class="summary-note" id="shippingNote">Selecciona tu colonia para calcular la tarifa de entrega.</p>
+                    <input type="hidden" name="costo_envio" id="costo_envio" value="{{ old('costo_envio', '0') }}">
+                </div>
+
                 <hr style="margin:24px 0;border:none;border-top:1px solid var(--borde)">
 
                 <div class="section-title"><i class="fa-solid fa-file-invoice"></i><span>Datos de facturación (opcional)</span></div>
@@ -426,7 +457,7 @@
             <strong>Banco:</strong> (Banrural)<br>
             <strong>Cuenta:</strong> (0000000000, Monetaria)<br>
             <strong>A nombre de:</strong> Supermercado Atlantia<br>
-            <strong>Referencia:</strong> Pedido #<span id="refPedido">{{ $pedidoId ?? '—' }}</span><br><br>
+            <strong>Referencia:</strong> Se asignará después de confirmar tu pedido.<br><br>
             Una vez confirmado el pago, procesaremos tu pedido.
         </p>
         <button class="btn btn-primary" onclick="cerrarModal('modalTransferencia')">Entendido</button>
@@ -470,6 +501,7 @@
         document.querySelectorAll('.step-section').forEach(s=>s.classList.remove('active'));
         document.getElementById('paso'+n).classList.add('active'); setStepper(n);
         if(n===2 && focusMapa){ setTimeout(()=>{ mapa.invalidateSize(); if(marker) mapa.setView(marker.getLatLng(), mapa.getZoom()); },100); }
+        if(n===3){ actualizarResumenEnvio(); }
         window.scrollTo({top:0,behavior:'smooth'});
     }
 
@@ -508,9 +540,13 @@
     }
 
     if(coloniaSelect){
-        coloniaSelect.addEventListener('change',()=>centrarEnColonia(coloniaSelect.value));
+        coloniaSelect.addEventListener('change',()=>{
+            centrarEnColonia(coloniaSelect.value);
+            actualizarResumenEnvio();
+        });
         if(coloniaSelect.value){
             centrarEnColonia(coloniaSelect.value);
+            actualizarResumenEnvio();
         }
     }
 
@@ -529,11 +565,41 @@
     // --- Pago: UI + nota dinámica ---
     const payGrid=document.getElementById('payGrid');
     const payNote=document.getElementById('payNote');
+    const subtotalCarrito=parseFloat(@json($subtotalVista));
+    const tarifasEnvio=@json($tarifasEnvioVista);
+    const tarifaEnvioDefault=parseFloat(@json($tarifaEnvioDefaultVista));
+    const summarySubtotal=document.getElementById('summarySubtotal');
+    const summaryEnvio=document.getElementById('summaryEnvio');
+    const summaryTotal=document.getElementById('summaryTotal');
+    const shippingNote=document.getElementById('shippingNote');
+    const envioInput=document.getElementById('costo_envio');
     const notes={
         efectivo:'El cobro se realizará al momento de recibir tu pedido. ¡Ten el efectivo listo!',
         tarjeta:'Pago con tarjeta mediante un proceso seguro. Tras confirmar, recibirás un enlace o checkout para completar el pago.',
         transferencia:'Realiza una transferencia o depósito y conserva tu comprobante. Procesaremos tu pedido al confirmar el pago.'
     };
+    function obtenerTarifaEnvio(colonia){
+        if(!colonia){ return 0; }
+        if(!tarifasEnvio){ return tarifaEnvioDefault; }
+        const fee=tarifasEnvio[colonia];
+        if(fee===undefined||fee===null||fee===''){ return tarifaEnvioDefault; }
+        const parsed=parseFloat(fee);
+        return Number.isFinite(parsed)?parsed:tarifaEnvioDefault;
+    }
+    function formatearMoneda(valor){
+        const numero=Number(valor||0);
+        return 'Q'+numero.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
+    function actualizarResumenEnvio(){
+        const colonia=coloniaSelect?coloniaSelect.value:'';
+        const tieneColonia=colonia && colonia.trim()!=='';
+        const envio=tieneColonia?obtenerTarifaEnvio(colonia):0;
+        if(summarySubtotal) summarySubtotal.textContent=formatearMoneda(subtotalCarrito);
+        if(summaryEnvio) summaryEnvio.textContent=formatearMoneda(envio);
+        if(summaryTotal) summaryTotal.textContent=formatearMoneda(subtotalCarrito+envio);
+        if(envioInput) envioInput.value=Number(envio||0).toFixed(2);
+        if(shippingNote) shippingNote.style.display=tieneColonia?'none':'block';
+    }
     function updatePayUI(){
         document.querySelectorAll('.pay-option').forEach(card=>{
             const input=card.querySelector('input[type="radio"]');
@@ -549,6 +615,7 @@
     });
     document.querySelectorAll('input[name="metodo_pago"]').forEach(r=>r.addEventListener('change',updatePayUI));
     updatePayUI();
+    actualizarResumenEnvio();
 
     // --- Abrir paso correcto si hay errores ---
     @if ($errors->any())

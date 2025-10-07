@@ -95,6 +95,8 @@
                         $mapLink = ($lat && $lng) ? sprintf('https://www.google.com/maps?q=%s,%s', $lat, $lng) : null;
                         $direccionTexto = $pedido?->direccion_formateada ?? (data_get($direccion, 'descripcion') ?? 'Dirección no disponible');
                         $status = $item->fulfillment_status;
+                        $metodoPago = $pedido?->metodo_pago ? ucfirst($pedido->metodo_pago) : 'Efectivo';
+                        $totalPedido = (float) ($pedido?->total ?? 0);
                         $badgeClass = [
                             'accepted'  => 'badge badge-pending',
                             'preparing' => 'badge badge-preparing',
@@ -114,6 +116,8 @@
                             @endif
                             <p><strong>Producto:</strong> {{ optional($item->producto)->nombre ?? 'Producto' }} × {{ $item->cantidad }}</p>
                             <p><strong>Dirección:</strong> {{ $direccionTexto }}</p>
+                            <p><strong>Método de pago:</strong> {{ $metodoPago }}</p>
+                            <p><strong>Total del pedido:</strong> Q{{ number_format($totalPedido, 2) }}</p>
                             <p><strong>Tarifa de entrega:</strong> Q{{ number_format((float)$item->delivery_fee, 2) }}</p>
                         </div>
                         <div class="delivery-actions">

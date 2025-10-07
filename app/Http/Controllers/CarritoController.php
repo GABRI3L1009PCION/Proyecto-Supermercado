@@ -85,10 +85,61 @@ class CarritoController extends Controller
             return redirect()->route('carrito.ver')->with('error', 'El carrito está vacío.');
         }
 
+        $productosIds = array_keys($carrito);
+        $productosDB = Producto::whereIn('id', $productosIds)->get()->keyBy('id');
+
+        if (count($productosIds) !== $productosDB->count()) {
+            $carritoFiltrado = [];
+            foreach ($carrito as $productoId => $item) {
+                if ($productosDB->has($productoId)) {
+                    $carritoFiltrado[$productoId] = $item;
+                }
+            }
+
+            session()->put('carrito', $carritoFiltrado);
+
+            return redirect()
+                ->route('carrito.ver')
+                ->with('error', 'Actualizamos tu carrito porque algunos productos ya no están disponibles.');
+        }
+
+        foreach ($carrito as $productoId => &$itemCarrito) {
+            $producto = $productosDB->get($productoId);
+            if ($producto) {
+                $itemCarrito['precio'] = (float) $producto->precio;
+            }
+        }
+        unset($itemCarrito);
+
+        session()->put('carrito', $carrito);
+
         $colonias = config('geografia.santo_tomas_colonias');
         $mapaDefault = config('geografia.santo_tomas_default');
+        $tarifaEnvioDefault = (float) (config('geografia.tarifa_envio_default') ?? 0);
 
-        return view('cliente.checkout', compact('carrito', 'colonias', 'mapaDefault'));
+        $subtotalCarrito = collect($carrito)->reduce(function ($carry, $item) {
+            $precio   = (float) ($item['precio'] ?? 0);
+            $cantidad = (int) ($item['cantidad'] ?? 0);
+            return $carry + ($precio * $cantidad);
+        }, 0.0);
+
+        $tarifasEnvio = collect($colonias)
+            ->filter(fn ($colonia) => !empty($colonia['nombre']))
+            ->mapWithKeys(function ($colonia) use ($tarifaEnvioDefault) {
+                $tarifa = $colonia['tarifa'] ?? null;
+                $valor = is_numeric($tarifa) ? (float) $tarifa : $tarifaEnvioDefault;
+                return [$colonia['nombre'] => $valor];
+            })
+            ->toArray();
+
+        return view('cliente.checkout', [
+            'carrito'            => $carrito,
+            'colonias'           => $colonias,
+            'mapaDefault'        => $mapaDefault,
+            'subtotalCarrito'    => $subtotalCarrito,
+            'tarifasEnvio'       => $tarifasEnvio,
+            'tarifaEnvioDefault' => $tarifaEnvioDefault,
+        ]);
     }
 
     public function confirmarCheckout(Request $request)
@@ -115,19 +166,55 @@ class CarritoController extends Controller
             'razon_social'   => ['nullable', 'string', 'max:150', 'required_if:factura,si'],
             'nombre_empresa' => ['nullable', 'string', 'max:150'],
             'metodo_pago'    => ['nullable', 'string', 'max:50'],
+            'costo_envio'    => ['nullable', 'numeric', 'min:0', 'max:500'],
         ], [
             'nit.required_if'          => 'El NIT es obligatorio si desea factura.',
             'razon_social.required_if' => 'La razón social es obligatoria si desea factura.',
         ]);
 
-        $subtotal = 0;
-        foreach ($carrito as $it) {
-            $subtotal += ((float)$it['precio']) * ((int)$it['cantidad']);
+        $productosIds = array_keys($carrito);
+        $productosDB = Producto::whereIn('id', $productosIds)->get()->keyBy('id');
+
+        if (count($productosIds) !== $productosDB->count()) {
+            $carritoFiltrado = [];
+            foreach ($carrito as $productoId => $item) {
+                if ($productosDB->has($productoId)) {
+                    $carritoFiltrado[$productoId] = $item;
+                }
+            }
+
+            session()->put('carrito', $carritoFiltrado);
+
+            return redirect()
+                ->route('carrito.ver')
+                ->with('error', 'Actualizamos tu carrito porque algunos productos ya no están disponibles.');
         }
 
+        $subtotal = 0;
+        foreach ($carrito as $productoId => &$itemCarrito) {
+            $producto = $productosDB->get($productoId);
+            $precioUnitario = (float) ($producto->precio ?? $itemCarrito['precio'] ?? 0);
+            $cantidad = (int) ($itemCarrito['cantidad'] ?? 0);
+
+            $itemCarrito['precio'] = $precioUnitario;
+            $subtotal += $precioUnitario * $cantidad;
+        }
+        unset($itemCarrito);
+
+        session()->put('carrito', $carrito);
+
         $descuento = 0;
-        $envio     = 0;
-        $total     = $subtotal - $descuento + $envio;
+        $envioCalculado = $this->calcularCostoEnvio($data['colonia'] ?? null);
+
+        if (array_key_exists('costo_envio', $data) && $data['costo_envio'] !== null) {
+            $envioReportado = (float) $data['costo_envio'];
+            if (abs($envioReportado - $envioCalculado) <= 0.01) {
+                $envioCalculado = $envioReportado;
+            }
+        }
+
+        $envio = $envioCalculado;
+        $total = $subtotal - $descuento + $envio;
 
         $direccionEnvio = [
             'descripcion' => $data['direccion'],
@@ -150,7 +237,7 @@ class CarritoController extends Controller
 
         $pedido = null;
 
-        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $facturacion, $carrito, &$pedido) {
+        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $facturacion, $carrito, $productosDB, &$pedido) {
             $pedido = Pedido::create([
                 'user_id'         => Auth::id(),
                 'repartidor_id'   => null,
@@ -165,21 +252,46 @@ class CarritoController extends Controller
                 'facturacion'     => $facturacion,
             ]);
 
-            $productosDB = Producto::whereIn('id', array_keys($carrito))->get()->keyBy('id');
+            $existeSupermercado = $productosDB->contains(fn ($producto) => $producto && $producto->vendor_id === null);
+            $envioAsignado = false;
 
             foreach ($carrito as $productoId => $item) {
-                $producto = $productosDB[$productoId];
+                $producto = $productosDB->get($productoId);
+                if (!$producto) {
+                    continue;
+                }
+
+                $esSupermercado = $producto->vendor_id === null;
+                $debeAplicarEnvio = false;
+
+                if (!$envioAsignado) {
+                    if ($existeSupermercado) {
+                        $debeAplicarEnvio = $esSupermercado;
+                    } else {
+                        $debeAplicarEnvio = true;
+                    }
+                }
 
                 PedidoItem::create([
                     'pedido_id'         => $pedido->id,
-                    'producto_id'       => (int)$productoId,
+                    'producto_id'       => (int) $productoId,
                     'vendor_id'         => $producto->vendor_id,
-                    'cantidad'          => (int)$item['cantidad'],
-                    'precio_unitario'   => (float)$item['precio'],
-                    'fulfillment_status'=> 'accepted',
+                    'cantidad'          => (int) $item['cantidad'],
+                    'precio_unitario'   => (float) $item['precio'],
+                    'fulfillment_status'=> PedidoItem::ESTADO_ACEPTADO,
+                    'delivery_mode'     => $esSupermercado
+                        ? PedidoItem::DELIVERY_MARKET_COURIER
+                        : PedidoItem::DELIVERY_VENDOR_SELF,
+                    'delivery_fee'      => $debeAplicarEnvio ? $envio : 0,
                     'repartidor_id'     => null,
                 ]);
+
+                if ($debeAplicarEnvio) {
+                    $envioAsignado = true;
+                }
             }
+
+            $pedido->syncEnvioFromItems();
         });
 
         session()->forget('carrito');
@@ -224,5 +336,19 @@ class CarritoController extends Controller
             session()->put('carrito', $carrito);
         }
         return back()->with('success', 'Producto eliminado.');
+    }
+
+    protected function calcularCostoEnvio(?string $colonia): float
+    {
+        $colonias = collect(config('geografia.santo_tomas_colonias'));
+        $tarifaDefault = (float) (config('geografia.tarifa_envio_default') ?? 0);
+
+        if (!$colonia) {
+            return $tarifaDefault;
+        }
+
+        $tarifa = optional($colonias->firstWhere('nombre', $colonia))['tarifa'] ?? null;
+
+        return is_numeric($tarifa) ? (float) $tarifa : $tarifaDefault;
     }
 }
