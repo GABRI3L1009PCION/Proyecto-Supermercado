@@ -60,25 +60,9 @@ class PedidoController extends Controller
             'delivery_fee'  => ['nullable', 'numeric', 'min:0', 'max:500'],
         ]);
 
-        $pedido = Pedido::with('itemsSupermercado')->findOrFail($id);
-        $itemsSuper = $pedido->itemsSupermercado;
-
-        if ($itemsSuper->isEmpty()) {
-            return redirect()->route('admin.pedidos.index')
-                ->with('error', 'Este pedido no tiene productos del supermercado para asignar un repartidor.');
-        }
-
-        foreach ($itemsSuper as $index => $item) {
-            $item->delivery_mode = PedidoItem::DELIVERY_MARKET_COURIER;
-            $item->repartidor_id = $data['repartidor_id'];
-            $item->delivery_fee = $index === 0 ? ($data['delivery_fee'] ?? 0) : 0;
-            $item->save();
-        }
-
-        $pedido->repartidor_id = $data['repartidor_id'];
-        if ($pedido->estado_global === 'pendiente') {
-            $pedido->estado_global = 'preparando';
-        }
+        $pedido = Pedido::findOrFail($id);
+        $pedido->repartidor_id = $request->repartidor_id;
+        $pedido->estado_global = 'preparando';
         $pedido->save();
 
         $pedido->refresh();
@@ -101,4 +85,17 @@ class PedidoController extends Controller
         return redirect()->route('admin.pedidos.index')->with('success', 'Estado del pedido actualizado correctamente.');
     }
 
+    public function asignar(Request $request, $pedido)
+    {
+        $request->validate([
+            'repartidor_id' => 'required|exists:users,id'
+        ]);
+
+        $pedido = Pedido::findOrFail($pedido);
+        $pedido->repartidor_id = $request->repartidor_id;
+        $pedido->estado_global = 'preparando';
+        $pedido->save();
+
+        return redirect()->route('admin.pedidos.index')->with('success', 'Repartidor asignado correctamente.');
+    }
 }

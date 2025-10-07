@@ -199,4 +199,38 @@ class Pedido extends Model
 
         return null;
     }
+
+    protected function direccionEnvio(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->normalizeJson($value),
+        );
+    }
+
+    protected function facturacion(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $this->normalizeJson($value),
+        );
+    }
+
+    protected function normalizeJson($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_object($value)) {
+            return (array) $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
 }

@@ -134,7 +134,6 @@ class CarritoController extends Controller
             'telefono'    => $data['telefono'],
             'referencia'  => $data['referencia'] ?? null,
             'colonia'     => $data['colonia'],
-            'municipio'   => 'Santo Tomás de Castilla',
             'lat'         => $data['lat'] ?? null,
             'lng'         => $data['lng'] ?? null,
         ];

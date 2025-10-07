@@ -80,7 +80,6 @@
                 'cantidad'  => $cantidad,
                 'precio'    => $precio,
                 'subtotal'  => round($precio * $cantidad, 2),
-                'delivery_fee' => (float) ($item->delivery_fee ?? 0),
             ];
         })->values();
 

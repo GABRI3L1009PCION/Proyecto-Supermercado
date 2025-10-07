@@ -94,15 +94,6 @@
     $telefono = $telefonoCliente ?? ($cliente->telefono ?? null);
     $coords   = $coordenadas ?? ['lat'=>null,'lng'=>null,'google'=>null];
     $metodo   = $metodoPago ?? ($pedido->metodo_pago ?? null);
-    $delivery = $delivery ?? [
-        'mode' => \App\Models\PedidoItem::DELIVERY_PENDING,
-        'fee'  => 0,
-        'repartidor_id' => null,
-        'repartidor' => null,
-    ];
-    $deliveryLabels = \App\Models\PedidoItem::deliveryModeLabels();
-    $repartidores = $repartidores ?? collect();
-    $deliveryInconsistent = $deliveryInconsistent ?? false;
 @endphp
 
 <div class="container">
@@ -212,6 +203,23 @@
                         <h3><i class="fas fa-map"></i> Ubicación en mapa</h3>
                     </div>
                     <div id="mapa-envio"></div>
+                </div>
+            @endif
+
+            {{-- Asignar Repartidor (demo UI) --}}
+            <div class="repartidor-section no-print">
+                <h4><i class="fas fa-motorcycle"></i> Asignar Repartidor</h4>
+                <div class="repartidor-select">
+                    <select class="form-select" id="repartidor-select">
+                        <option value="">Seleccionar repartidor</option>
+                        <option value="vendedor">Yo mismo (Vendedor)</option>
+                        <option value="1">Juan Pérez (+502 5555-1234)</option>
+                        <option value="2">María García (+502 5555-5678)</option>
+                        <option value="3">Carlos López (+502 5555-9012)</option>
+                    </select>
+                    <button class="btn-vino" onclick="asignarRepartidor()">
+                        <i class="fas fa-user-check"></i> Asignar
+                    </button>
                 </div>
             @endif
 
@@ -381,6 +389,19 @@
         deliveryRadios.forEach(radio => radio.addEventListener('change', toggleRepartidor));
         toggleRepartidor();
     });
+
+    // Mapa
+    @if(!empty($coords['lat']) && !empty($coords['lng']))
+    document.addEventListener('DOMContentLoaded', () => {
+        const map = L.map('mapa-envio').setView([{{ $coords['lat'] }}, {{ $coords['lng'] }}], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        L.marker([{{ $coords['lat'] }}, {{ $coords['lng'] }}]).addTo(map)
+            .bindPopup(@json($dirTexto ?? 'Ubicación de entrega'));
+    });
+    @endif
 
     // Mapa
     @if(!empty($coords['lat']) && !empty($coords['lng']))

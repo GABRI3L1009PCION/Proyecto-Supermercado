@@ -112,6 +112,7 @@ class PedidoController extends Controller
             },
         ]);
 
+        // Normaliza posibles JSON guardados como string
         $dir = $pedido->direccion_envio ?? [];
 
         $telefonoCliente = data_get($dir, 'telefono') ?: data_get($pedido->cliente, 'telefono');
@@ -131,34 +132,15 @@ class PedidoController extends Controller
             ? sprintf('https://www.google.com/maps?q=%s,%s', $lat, $lng)
             : null;
 
-        $repartidores = User::where('role', 'repartidor')->where('estado', 'activo')->get(['id', 'name', 'telefono']);
-
-        $primerItem = $pedido->items->first();
-        $deliveryInfo = [
-            'mode'          => $primerItem?->delivery_mode ?? PedidoItem::DELIVERY_PENDING,
-            'fee'           => (float) ($primerItem?->delivery_fee ?? 0),
-            'repartidor_id' => $primerItem?->repartidor_id,
-            'repartidor'    => optional($primerItem?->repartidor),
-        ];
-
-        $deliveryInconsistent = $pedido->items
-            ->pluck('delivery_mode')
-            ->filter()
-            ->unique()
-            ->count() > 1;
-
         return view('Vendedor.pedidos.show', [
-            'pedido'              => $pedido,
-            'pedidoItems'         => $pedido->items,
-            'telefonoCliente'     => $telefonoCliente,
-            'facturacion'         => $facturacion,
-            'direccion'           => $dir,
-            'direccionTexto'      => $dirTexto,
-            'coordenadas'         => ['lat' => $lat, 'lng' => $lng, 'google' => $googleMapsUrl],
-            'metodoPago'          => $pedido->metodo_pago,
-            'repartidores'        => $repartidores,
-            'delivery'            => $deliveryInfo,
-            'deliveryInconsistent'=> $deliveryInconsistent,
+            'pedido'          => $pedido,
+            'pedidoItems'     => $pedido->items, // ya filtrados por vendor
+            'telefonoCliente' => $telefonoCliente,
+            'facturacion'     => $facturacion,
+            'direccion'       => $dir,
+            'direccionTexto'  => $dirTexto,
+            'coordenadas'     => ['lat' => $lat, 'lng' => $lng, 'google' => $googleMapsUrl],
+            'metodoPago'      => $pedido->metodo_pago,
         ]);
     }
 
