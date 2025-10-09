@@ -17,7 +17,6 @@ class DeliveryZoneController extends Controller
         return view('admin.delivery_zones.index', [
             'zones'      => $zones,
             'municipios' => DeliveryZone::municipiosDisponibles(),
-            'newZone'    => new DeliveryZone(['activo' => true]),
         ]);
     }
 
