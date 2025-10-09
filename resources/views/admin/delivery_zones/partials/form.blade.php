@@ -17,7 +17,6 @@ hadow:0 6px 16px rgba(15,23,42,0.08)}
     .btn-primary{background:#2563eb;color:#fff}
     .btn-secondary{background:#fff;color:#1f2937;border:1px solid #d1d5db;text-decoration:none}
     .switch{display:flex;align-items:center;gap:8px;margin-top:18px}
-    .error-text{color:#b91c1c;font-size:12px;font-weight:500;margin-top:6px}
     .alert{padding:12px 14px;border-radius:12px;margin-bottom:16px;font-weight:600}
     .alert-error{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5}
 </style>
@@ -46,9 +45,6 @@ hadow:0 6px 16px rgba(15,23,42,0.08)}
                 <label>
                     <span>Nombre de la zona</span>
                     <input type="text" name="nombre" value="{{ old('nombre', $zone->nombre) }}" required>
-                    @error('nombre')
-                        <span class="error-text">{{ $message }}</span>
-                    @enderror
                 </label>
 
                 <label>
@@ -61,39 +57,26 @@ hadow:0 6px 16px rgba(15,23,42,0.08)}
                             </option>
                         @endforeach
                     </select>
-                    @error('municipio')
-                        <span class="error-text">{{ $message }}</span>
-                    @enderror
                 </label>
 
                 <label>
                     <span>Tarifa base (Q)</span>
                     <input type="number" step="0.01" min="0" max="500" name="tarifa_base" value="{{ old('tarifa_base', $zone
-                        ->tarifa_base ?? 0) }}" required>
-                    @error('tarifa_base')
-                        <span class="error-text">{{ $message }}</span>
-                    @enderror
+->tarifa_base ?? 0) }}" required>
                 </label>
 
                 <label>
                     <span>Latitud</span>
                     <input type="number" step="0.000001" name="lat" value="{{ old('lat', $zone->lat) }}">
-                    @error('lat')
-                        <span class="error-text">{{ $message }}</span>
-                    @enderror
                 </label>
 
                 <label>
                     <span>Longitud</span>
                     <input type="number" step="0.000001" name="lng" value="{{ old('lng', $zone->lng) }}">
-                    @error('lng')
-                        <span class="error-text">{{ $message }}</span>
-                    @enderror
                 </label>
             </div>
 
             <div class="switch">
-                <input type="hidden" name="activo" value="0">
                 <input type="checkbox" id="activo" name="activo" value="1" @checked(old('activo', $zone->activo ?? true))>
                 <label for="activo" style="margin:0;font-weight:600;">Zona activa</label>
             </div>
