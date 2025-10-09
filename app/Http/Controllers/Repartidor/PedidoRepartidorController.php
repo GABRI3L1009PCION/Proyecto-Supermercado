@@ -19,7 +19,7 @@ class PedidoRepartidorController extends Controller
         $repartidorId = Auth::id();
 
         $activos = PedidoItem::with([
-            'pedido:id,cliente_id,direccion_envio,metodo_pago,codigo',
+            'pedido:id,user_id,direccion_envio,metodo_pago,codigo,envio,total',
             'pedido.cliente:id,name,telefono,email',
             'producto:id,nombre',
         ])
@@ -34,7 +34,7 @@ class PedidoRepartidorController extends Controller
             ->get();
 
         $historial = PedidoItem::with([
-            'pedido:id,cliente_id,direccion_envio,metodo_pago,codigo',
+            'pedido:id,user_id,direccion_envio,metodo_pago,codigo,envio,total',
             'pedido.cliente:id,name,telefono,email',
             'producto:id,nombre',
         ])

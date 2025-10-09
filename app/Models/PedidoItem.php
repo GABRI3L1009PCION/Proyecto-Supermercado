@@ -23,12 +23,20 @@ class PedidoItem extends Model
         'delivery_fee',
         'repartidor_id',
         'justificacion',
+        'pickup_contact',
+        'pickup_phone',
+        'pickup_address',
+        'delivery_instructions',
     ];
 
     protected $casts = [
         'precio_unitario' => 'decimal:2',
         'cantidad'        => 'integer',
         'delivery_fee'    => 'decimal:2',
+        'pickup_contact'  => 'string',
+        'pickup_phone'    => 'string',
+        'pickup_address'  => 'string',
+        'delivery_instructions' => 'string',
     ];
 
     // Estados
