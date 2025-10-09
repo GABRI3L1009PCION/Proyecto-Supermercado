@@ -31,6 +31,7 @@ use App\Http\Controllers\Admin\PedidoController as AdminPedidoController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\RepartidorAdminController;
 use App\Http\Controllers\Admin\VendedorAdminController;
+use App\Http\Controllers\Admin\DeliveryZoneController;
 
 // Vendedor
 use App\Http\Controllers\Vendedor\PanelVendedorController;
@@ -159,6 +160,7 @@ Route::middleware(['auth', 'role:admin'])
         // Reportes y gestión
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
         Route::resource('/repartidores', RepartidorAdminController::class)->names('repartidores');
+        Route::resource('/zonas-entrega', DeliveryZoneController::class)->names('delivery-zones');
 
         Route::get('/vendedores',         [VendedorAdminController::class, 'index'])->name('vendedores.index');
         Route::get('/vendedores/crear',   [VendedorAdminController::class, 'create'])->name('vendedores.create');

@@ -149,6 +149,7 @@
                     <a href="{{ route('admin.pedidos.index') }}"><i class="fas fa-truck"></i> Pedidos</a>
                     <a href="{{ route('admin.repartidores.index') }}"><i class="fas fa-users"></i> Repartidores</a>
                     <a href="{{ route('admin.vendedores.index') }}"><i class="fas fa-store"></i> Vendedores</a>
+                    <a href="{{ route('admin.delivery-zones.index') }}"><i class="fas fa-map-marked-alt"></i> Área de servicio</a>
 
                     {{-- Extras --}}
                     <a href="{{ route('admin.facturacion') }}"><i class="fas fa-file-invoice-dollar"></i> Facturación</a>
