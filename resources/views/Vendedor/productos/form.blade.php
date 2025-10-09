@@ -1,9 +1,17 @@
-{{-- resources/views/vendedor/productos/create.blade.php --}}
+{{-- resources/views/vendedor/productos/form.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
+    @php
+        $mode = $mode ?? 'create';
+        $isEdit = $mode === 'edit';
+        $formAction = $isEdit
+            ? route('vendedor.productos.update', $producto)
+            : route('vendedor.productos.store');
+    @endphp
+
     <div class="box">
-        <h2>Nuevo producto</h2>
+        <h2>{{ $isEdit ? 'Editar producto' : 'Nuevo producto' }}</h2>
 
         @if ($errors->any())
             <div class="alert">
@@ -11,22 +19,31 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('vendedor.productos.store') }}" enctype="multipart/form-data" class="form">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="form">
             @csrf
+            @if($isEdit)
+                @method('PUT')
+            @endif
             <div class="grid">
                 <label>
                     <span>Nombre</span>
-                    <input type="text" name="nombre" value="{{ old('nombre') }}" required>
+                    <input type="text" name="nombre" value="{{ old('nombre', $producto->nombre) }}" required>
                 </label>
 
                 <label>
                     <span>Precio</span>
-                    <input type="number" step="0.01" name="precio" value="{{ old('precio') }}" required>
+                    <input type="number" step="0.01" name="precio" value="{{ old('precio', $producto->precio) }}" required>
+                </label>
+
+                <label>
+                    <span>Tarifa de entrega (Q)</span>
+                    <input type="number" step="0.01" min="0" max="500" name="delivery_price" value="{{ old('delivery_price', $producto->delivery_price) }}">
+                    <small class="helper">Establece el costo de envío que cobrarás por pedido para este producto.</small>
                 </label>
 
                 <label>
                     <span>Stock</span>
-                    <input type="number" name="stock" value="{{ old('stock') }}" required>
+                    <input type="number" name="stock" value="{{ old('stock', $producto->stock) }}" required>
                 </label>
 
                 <label>
@@ -34,28 +51,34 @@
                     <select name="categoria_id" required>
                         <option value="">-- Selecciona --</option>
                         @foreach($categorias as $c)
-                            <option value="{{ $c->id }}" @selected(old('categoria_id')==$c->id)>{{ $c->nombre }}</option>
+                            <option value="{{ $c->id }}" @selected(old('categoria_id', $producto->categoria_id)==$c->id)>{{ $c->nombre }}</option>
                         @endforeach
                     </select>
                 </label>
 
                 <label class="col-2">
                     <span>Descripción</span>
-                    <textarea name="descripcion" rows="5">{{ old('descripcion') }}</textarea>
+                    <textarea name="descripcion" rows="5">{{ old('descripcion', $producto->descripcion) }}</textarea>
                 </label>
 
                 <label class="col-2">
                     <span>Imagen principal</span>
                     <input type="file" name="imagen" accept="image/*" id="fileImagen">
                     <div class="preview">
-                        <img id="imgPreview" alt="preview" style="display:none;max-height:160px;border-radius:8px;">
+                        @php
+                            $imagenActual = $producto->imagen ? asset('storage/'.$producto->imagen) : null;
+                        @endphp
+                        <img id="imgPreview" alt="preview" style="{{ $imagenActual ? '' : 'display:none;' }}max-height:160px;border-radius:8px;" src="{{ $imagenActual }}">
                     </div>
                     <small>Formatos: jpg, png, webp. Máx 2MB.</small>
+                    @if($isEdit && $producto->imagen)
+                        <small>Actualmente: {{ $producto->imagen }}</small>
+                    @endif
                 </label>
             </div>
 
             <div class="actions">
-                <button class="btn btn-primary" type="submit">Crear</button>
+                <button class="btn btn-primary" type="submit">{{ $isEdit ? 'Actualizar' : 'Crear' }}</button>
                 <a class="btn" href="{{ route('vendedor.productos.index') }}">Cancelar</a>
             </div>
         </form>
@@ -70,6 +93,7 @@
         .form input, .form select, .form textarea{
             padding:10px;border:1px solid #e5e7eb;border-radius:10px
         }
+        .form small.helper{color:#6b7280;font-size:12px;margin-top:4px}
         .actions{margin-top:14px;display:flex;gap:8px}
         .btn{padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;text-decoration:none;color:#111}
         .btn-primary{background:#16a34a;border-color:#16a34a;color:#fff}

@@ -28,12 +28,13 @@ class ProductoController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'precio' => 'required|numeric|min:0',
+            'delivery_price' => 'nullable|numeric|min:0|max:500',
             'stock' => 'required|integer|min:0',
             'categoria_id' => 'required|exists:categorias,id',
             'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $data = $request->only(['nombre', 'descripcion', 'precio', 'stock', 'categoria_id']);
+        $data = $request->only(['nombre', 'descripcion', 'precio', 'delivery_price', 'stock', 'categoria_id']);
 
         // Manejar imagen si se subió
         if ($request->hasFile('imagen')) {
@@ -61,12 +62,13 @@ class ProductoController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
             'precio' => 'required|numeric|min:0',
+            'delivery_price' => 'nullable|numeric|min:0|max:500',
             'stock' => 'required|integer|min:0',
             'categoria_id' => 'required|exists:categorias,id',
             'imagen' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $data = $request->only(['nombre', 'descripcion', 'precio', 'stock', 'categoria_id']);
+        $data = $request->only(['nombre', 'descripcion', 'precio', 'delivery_price', 'stock', 'categoria_id']);
 
         if ($request->hasFile('imagen')) {
             // Borrar imagen anterior si existía

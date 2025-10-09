@@ -132,15 +132,41 @@ class PedidoController extends Controller
             ? sprintf('https://www.google.com/maps?q=%s,%s', $lat, $lng)
             : null;
 
+        $itemsVendor = $pedido->items;
+        $deliveryModes = $itemsVendor->pluck('delivery_mode')->filter()->unique();
+        $deliveryFees  = $itemsVendor->pluck('delivery_fee')->filter()->unique();
+        $deliveryInconsistent = $deliveryModes->count() > 1 || $deliveryFees->count() > 1;
+
+        $primerItem = $itemsVendor->first();
+        $delivery = [
+            'mode'                  => $primerItem->delivery_mode ?? null,
+            'fee'                   => (float) ($primerItem->delivery_fee ?? 0),
+            'repartidor'            => $primerItem?->repartidor,
+            'repartidor_id'         => $primerItem?->repartidor_id,
+            'pickup_contact'        => $primerItem?->pickup_contact,
+            'pickup_phone'          => $primerItem?->pickup_phone,
+            'pickup_address'        => $primerItem?->pickup_address,
+            'delivery_instructions' => $primerItem?->delivery_instructions,
+        ];
+
+        $repartidores = User::where('role', 'repartidor')
+            ->where('estado', 'activo')
+            ->orderBy('name')
+            ->get(['id', 'name', 'telefono']);
+
         return view('Vendedor.pedidos.show', [
-            'pedido'          => $pedido,
-            'pedidoItems'     => $pedido->items, // ya filtrados por vendor
-            'telefonoCliente' => $telefonoCliente,
-            'facturacion'     => $facturacion,
-            'direccion'       => $dir,
-            'direccionTexto'  => $dirTexto,
-            'coordenadas'     => ['lat' => $lat, 'lng' => $lng, 'google' => $googleMapsUrl],
-            'metodoPago'      => $pedido->metodo_pago,
+            'pedido'              => $pedido,
+            'pedidoItems'         => $itemsVendor, // ya filtrados por vendor
+            'telefonoCliente'     => $telefonoCliente,
+            'facturacion'         => $facturacion,
+            'direccion'           => $dir,
+            'direccionTexto'      => $dirTexto,
+            'coordenadas'         => ['lat' => $lat, 'lng' => $lng, 'google' => $googleMapsUrl],
+            'metodoPago'          => $pedido->metodo_pago,
+            'delivery'            => $delivery,
+            'deliveryLabels'      => PedidoItem::deliveryModeLabels(),
+            'deliveryInconsistent'=> $deliveryInconsistent,
+            'repartidores'        => $repartidores,
         ]);
     }
 
