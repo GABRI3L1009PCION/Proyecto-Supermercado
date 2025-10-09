@@ -87,7 +87,7 @@ class CarritoController extends Controller
         }
 
         $productosIds = array_keys($carrito);
-        $productosDB = Producto::with('vendor')->whereIn('id', $productosIds)->get()->keyBy('id');
+        $productosDB = Producto::whereIn('id', $productosIds)->get()->keyBy('id');
 
         if (count($productosIds) !== $productosDB->count()) {
             $carritoFiltrado = [];
@@ -114,24 +114,9 @@ class CarritoController extends Controller
 
         session()->put('carrito', $carrito);
 
-        $zones = DeliveryZone::activas()->orderBy('municipio')->orderBy('nombre')->get();
+        $colonias = config('geografia.santo_tomas_colonias');
+        $mapaDefault = config('geografia.santo_tomas_default');
         $tarifaEnvioDefault = (float) (config('geografia.tarifa_envio_default') ?? 0);
-
-        $zonesNormalized = $zones->map(fn (DeliveryZone $zone) => [
-            'id'          => $zone->id,
-            'nombre'      => $zone->nombre,
-            'municipio'   => $zone->municipio,
-            'lat'         => $zone->lat,
-            'lng'         => $zone->lng,
-            'tarifa_base' => (float) $zone->tarifa_base,
-        ]);
-
-        $municipios = $zonesNormalized->pluck('municipio')->filter()->unique()->values();
-        $mapaDefault = [
-            'lat'  => $zonesNormalized->firstWhere('lat', '!=', null)['lat'] ?? ($zonesNormalized->first()['lat'] ?? (config('geografia.santo_tomas_default.lat') ?? 15.7169)),
-            'lng'  => $zonesNormalized->firstWhere('lng', '!=', null)['lng'] ?? ($zonesNormalized->first()['lng'] ?? (config('geografia.santo_tomas_default.lng') ?? -88.5940)),
-            'zoom' => 14,
-        ];
 
         $subtotalCarrito = collect($carrito)->reduce(function ($carry, $item) {
             $precio   = (float) ($item['precio'] ?? 0);
@@ -139,37 +124,22 @@ class CarritoController extends Controller
             return $carry + ($precio * $cantidad);
         }, 0.0);
 
-        $vendorLabels = [];
-        $carritoDeliveryItems = [];
-        foreach ($carrito as $productoId => $item) {
-            $producto = $productosDB->get($productoId);
-            if (!$producto) {
-                continue;
-            }
-
-            $vendorKey = $this->resolveVendorKey($producto->vendor_id);
-            $carritoDeliveryItems[] = [
-                'producto_id'    => (int) $productoId,
-                'vendor_key'     => $vendorKey,
-                'delivery_price' => $producto->delivery_price !== null ? (float) $producto->delivery_price : null,
-            ];
-
-            if (!isset($vendorLabels[$vendorKey])) {
-                $vendorLabels[$vendorKey] = $producto->vendor_id
-                    ? (optional($producto->vendor)->name ?? ('Vendedor #' . $producto->vendor_id))
-                    : 'Supermercado';
-            }
-        }
+        $tarifasEnvio = collect($colonias)
+            ->filter(fn ($colonia) => !empty($colonia['nombre']))
+            ->mapWithKeys(function ($colonia) use ($tarifaEnvioDefault) {
+                $tarifa = $colonia['tarifa'] ?? null;
+                $valor = is_numeric($tarifa) ? (float) $tarifa : $tarifaEnvioDefault;
+                return [$colonia['nombre'] => $valor];
+            })
+            ->toArray();
 
         return view('cliente.checkout', [
-            'carrito'             => $carrito,
-            'zonas'               => $zonesNormalized,
-            'municipios'          => $municipios->all(),
-            'mapaDefault'         => $mapaDefault,
-            'subtotalCarrito'     => $subtotalCarrito,
-            'tarifaEnvioDefault'  => $tarifaEnvioDefault,
-            'cartDeliveryItems'   => $carritoDeliveryItems,
-            'vendorLabels'        => $vendorLabels,
+            'carrito'            => $carrito,
+            'colonias'           => $colonias,
+            'mapaDefault'        => $mapaDefault,
+            'subtotalCarrito'    => $subtotalCarrito,
+            'tarifasEnvio'       => $tarifasEnvio,
+            'tarifaEnvioDefault' => $tarifaEnvioDefault,
         ]);
     }
 
@@ -203,13 +173,8 @@ class CarritoController extends Controller
             'razon_social.required_if' => 'La razón social es obligatoria si desea factura.',
         ]);
 
-        $zone = $zones->firstWhere('id', (int) $data['delivery_zone_id']);
-        if (!$zone || $zone->municipio !== $data['municipio']) {
-            return back()->withErrors(['delivery_zone_id' => 'Selecciona una zona de entrega válida.'])->withInput();
-        }
-
         $productosIds = array_keys($carrito);
-        $productosDB = Producto::with('vendor')->whereIn('id', $productosIds)->get()->keyBy('id');
+        $productosDB = Producto::whereIn('id', $productosIds)->get()->keyBy('id');
 
         if (count($productosIds) !== $productosDB->count()) {
             $carritoFiltrado = [];
@@ -240,16 +205,16 @@ class CarritoController extends Controller
         session()->put('carrito', $carrito);
 
         $descuento = 0;
-        $costosEnvio = $this->calcularCostosEnvio($zone, $carrito, $productosDB);
-        $envio = $costosEnvio['total'];
-        $envioPorVendor = collect($costosEnvio['detalles'])->mapWithKeys(fn ($detalle, $key) => [$key => $detalle['fee']])->toArray();
+        $envioCalculado = $this->calcularCostoEnvio($data['colonia'] ?? null);
 
         if (array_key_exists('costo_envio', $data) && $data['costo_envio'] !== null) {
             $envioReportado = (float) $data['costo_envio'];
-            if (abs($envioReportado - $envio) <= 0.01) {
-                $envio = $envioReportado;
+            if (abs($envioReportado - $envioCalculado) <= 0.01) {
+                $envioCalculado = $envioReportado;
             }
         }
+
+        $envio = $envioCalculado;
         $total = $subtotal - $descuento + $envio;
 
         $direccionEnvio = [
@@ -275,7 +240,7 @@ class CarritoController extends Controller
 
         $pedido = null;
 
-        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $facturacion, $carrito, $productosDB, &$pedido, $envioPorVendor) {
+        DB::transaction(function () use ($data, $subtotal, $descuento, $envio, $total, $direccionEnvio, $facturacion, $carrito, $productosDB, &$pedido) {
             $pedido = Pedido::create([
                 'user_id'         => Auth::id(),
                 'repartidor_id'   => null,
@@ -290,7 +255,8 @@ class CarritoController extends Controller
                 'facturacion'     => $facturacion,
             ]);
 
-            $envioAsignado = [];
+            $existeSupermercado = $productosDB->contains(fn ($producto) => $producto && $producto->vendor_id === null);
+            $envioAsignado = false;
 
             foreach ($carrito as $productoId => $item) {
                 $producto = $productosDB->get($productoId);
@@ -298,9 +264,16 @@ class CarritoController extends Controller
                     continue;
                 }
 
-                $vendorKey = $this->resolveVendorKey($producto->vendor_id);
-                $feeVendor = $envioPorVendor[$vendorKey] ?? 0;
-                $debeAplicarEnvio = $feeVendor > 0 && empty($envioAsignado[$vendorKey]);
+                $esSupermercado = $producto->vendor_id === null;
+                $debeAplicarEnvio = false;
+
+                if (!$envioAsignado) {
+                    if ($existeSupermercado) {
+                        $debeAplicarEnvio = $esSupermercado;
+                    } else {
+                        $debeAplicarEnvio = true;
+                    }
+                }
 
                 PedidoItem::create([
                     'pedido_id'         => $pedido->id,
@@ -309,15 +282,15 @@ class CarritoController extends Controller
                     'cantidad'          => (int) $item['cantidad'],
                     'precio_unitario'   => (float) $item['precio'],
                     'fulfillment_status'=> PedidoItem::ESTADO_ACEPTADO,
-                    'delivery_mode'     => $producto->vendor_id === null
+                    'delivery_mode'     => $esSupermercado
                         ? PedidoItem::DELIVERY_MARKET_COURIER
                         : PedidoItem::DELIVERY_VENDOR_SELF,
-                    'delivery_fee'      => $debeAplicarEnvio ? $feeVendor : 0,
+                    'delivery_fee'      => $debeAplicarEnvio ? $envio : 0,
                     'repartidor_id'     => null,
                 ]);
 
                 if ($debeAplicarEnvio) {
-                    $envioAsignado[$vendorKey] = true;
+                    $envioAsignado = true;
                 }
             }
 
@@ -368,49 +341,17 @@ class CarritoController extends Controller
         return back()->with('success', 'Producto eliminado.');
     }
 
-    protected function calcularCostosEnvio(?DeliveryZone $zone, array $carrito, $productosDB): array
+    protected function calcularCostoEnvio(?string $colonia): float
     {
+        $colonias = collect(config('geografia.santo_tomas_colonias'));
         $tarifaDefault = (float) (config('geografia.tarifa_envio_default') ?? 0);
-        $tarifaBase = $zone ? (float) $zone->tarifa_base : $tarifaDefault;
 
-        $detalles = [];
-
-        foreach ($carrito as $productoId => $item) {
-            $producto = $productosDB->get($productoId);
-            if (!$producto) {
-                continue;
-            }
-
-            $vendorKey = $this->resolveVendorKey($producto->vendor_id);
-            $vendorLabel = $producto->vendor_id
-                ? (optional($producto->vendor)->name ?? ('Vendedor #' . $producto->vendor_id))
-                : 'Supermercado';
-
-            $fee = $producto->delivery_price !== null
-                ? max(0, (float) $producto->delivery_price)
-                : max(0, $tarifaBase);
-
-            if (!isset($detalles[$vendorKey])) {
-                $detalles[$vendorKey] = [
-                    'fee'   => $fee,
-                    'label' => $vendorLabel,
-                ];
-            } else {
-                $detalles[$vendorKey]['fee'] = max($detalles[$vendorKey]['fee'], $fee);
-            }
+        if (!$colonia) {
+            return $tarifaDefault;
         }
 
-        $total = collect($detalles)->sum('fee');
+        $tarifa = optional($colonias->firstWhere('nombre', $colonia))['tarifa'] ?? null;
 
-        return [
-            'total'    => $total,
-            'detalles' => $detalles,
-            'base'     => $tarifaBase,
-        ];
-    }
-
-    protected function resolveVendorKey($vendorId): string
-    {
-        return $vendorId ? 'vendor_' . $vendorId : 'market';
+        return is_numeric($tarifa) ? (float) $tarifa : $tarifaDefault;
     }
 }

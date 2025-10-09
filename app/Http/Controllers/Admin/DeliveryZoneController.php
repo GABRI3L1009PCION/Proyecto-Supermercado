@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryZone;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,7 +17,6 @@ class DeliveryZoneController extends Controller
         return view('admin.delivery_zones.index', [
             'zones'      => $zones,
             'municipios' => DeliveryZone::municipiosDisponibles(),
-            'newZone'    => new DeliveryZone(['activo' => true]),
         ]);
     }
 
@@ -59,20 +57,10 @@ class DeliveryZoneController extends Controller
 
     public function destroy(DeliveryZone $delivery_zone): RedirectResponse
     {
-        try {
-            $deleted = $delivery_zone->delete();
+        $delivery_zone->delete();
 
-            if (! $deleted) {
-                return redirect()->route('admin.delivery-zones.index')
-                    ->with('error', 'La zona no pudo eliminarse. Inténtalo nuevamente.');
-            }
-
-            return redirect()->route('admin.delivery-zones.index')
-                ->with('success', 'Zona eliminada correctamente.');
-        } catch (QueryException $exception) {
-            return redirect()->route('admin.delivery-zones.index')
-                ->with('error', 'No se pudo eliminar la zona porque está siendo utilizada.');
-        }
+        return redirect()->route('admin.delivery-zones.index')
+            ->with('success', 'Zona eliminada correctamente.');
     }
 
     protected function validateData(Request $request, ?int $ignoreId = null): array
