@@ -39,29 +39,6 @@ class Reseña extends Model
         'imagenes',
     ];
 
-    protected $casts = [
-        'uso_score' => 'integer',
-        'comodidad_score' => 'integer',
-        'duracion_score' => 'integer',
-        'talla_percibida' => 'string',
-        'reaccion' => 'string',
-    ];
-
-    public function getTallaPercebidaLabelAttribute(): ?string
-    {
-        return match ($this->talla_percibida) {
-            'pequena' => 'Pequeña',
-            'exacta' => 'Tal como la esperaba',
-            'grande' => 'Más grande de lo esperado',
-            default => null,
-        };
-    }
-
-    public function getReaccionLabelAttribute(): ?string
-    {
-        return self::REACCIONES[$this->reaccion] ?? null;
-    }
-
     /**
      * 🔹 Una reseña pertenece a un producto.
      */

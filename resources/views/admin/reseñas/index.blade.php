@@ -183,23 +183,6 @@
                                     </td>
                                     <td>
                                         <div style="color:#4b5563;line-height:1.5;">{{ $reseña->comentario ?: '—' }}</div>
-                                        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;font-size:11px;font-weight:600;">
-                                            @if ($reseña->uso_score)
-                                                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:#fce7f3;color:#9d174d;"><i class="fas fa-sun"></i> Uso {{ $reseña->uso_score }}/5</span>
-                                            @endif
-                                            @if ($reseña->comodidad_score)
-                                                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:#fce7f3;color:#9d174d;"><i class="fas fa-feather"></i> Comodidad {{ $reseña->comodidad_score }}/5</span>
-                                            @endif
-                                            @if ($reseña->duracion_score)
-                                                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;background:#fce7f3;color:#9d174d;"><i class="fas fa-hourglass-half"></i> Duración {{ $reseña->duracion_score }}/5</span>
-                                            @endif
-                                            @if ($reseña->talla_percebida_label)
-                                                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid #fbcfe8;background:#fff;color:#9d174d;"><i class="fas fa-ruler-horizontal"></i> {{ $reseña->talla_percebida_label }}</span>
-                                            @endif
-                                            @if ($reseña->reaccion_label)
-                                                <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:1px solid #fbcfe8;background:#fff;color:#9d174d;"><i class="fas fa-heart"></i> {{ $reseña->reaccion_label }}</span>
-                                            @endif
-                                        </div>
                                         @if ($reseña->imagenes->isNotEmpty())
                                             <div class="admin-review-gallery" role="list">
                                                 @foreach ($reseña->imagenes as $imagen)

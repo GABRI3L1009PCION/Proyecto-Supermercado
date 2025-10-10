@@ -326,7 +326,6 @@
             .reviews-wrap { padding: 1.5rem; margin: 1.5rem auto; }
             .average-box { flex-direction: column; align-items: flex-start; gap: 1rem; }
             .average-info { text-align: left; }
-            .insights-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
         }
 
         @media (max-width: 640px) {

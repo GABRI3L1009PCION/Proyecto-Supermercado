@@ -9,7 +9,6 @@ use App\Models\ReseñaImagen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class ReseñaController extends Controller
 {
@@ -52,11 +51,6 @@ class ReseñaController extends Controller
             'comentario' => ['nullable', 'string', 'max:600'],
             'fotos' => ['nullable', 'array', 'max:6'],
             'fotos.*' => ['image', 'max:5120'],
-            'uso_score' => ['nullable', 'integer', 'between:1,5'],
-            'comodidad_score' => ['nullable', 'integer', 'between:1,5'],
-            'duracion_score' => ['nullable', 'integer', 'between:1,5'],
-            'talla_percibida' => ['nullable', Rule::in(Reseña::TALLAS)],
-            'reaccion' => ['nullable', Rule::in(array_keys(Reseña::REACCIONES))],
         ]);
 
         if ($pedidoItem->reseña) {
@@ -71,11 +65,6 @@ class ReseñaController extends Controller
                 'pedido_id' => $pedidoItem->pedido_id,
                 'pedido_item_id' => $pedidoItem->id,
                 'estrellas' => $data['estrellas'],
-                'uso_score' => $data['uso_score'] ?? null,
-                'comodidad_score' => $data['comodidad_score'] ?? null,
-                'duracion_score' => $data['duracion_score'] ?? null,
-                'talla_percibida' => $data['talla_percibida'] ?? null,
-                'reaccion' => $data['reaccion'] ?? null,
                 'comentario' => $data['comentario'] ?? null,
             ]);
 
