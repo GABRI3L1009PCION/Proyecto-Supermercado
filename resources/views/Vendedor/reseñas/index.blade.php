@@ -213,6 +213,9 @@
                             <div class="review-product">
                                 Producto: {{ $r->producto->nombre ?? 'Producto eliminado' }}
                             </div>
+                            <div class="review-product">
+                                Pedido: {{ $r->pedido?->codigo ?? ($r->pedido_id ? '#'.$r->pedido_id : '—') }}
+                            </div>
                         </div>
                         <div class="review-stars">
                             @for($i = 1; $i <= 5; $i++)
@@ -221,7 +224,7 @@
                         </div>
                     </div>
 
-                    <p class="review-text">{{ $r->comentario }}</p>
+                    <p class="review-text">{{ $r->comentario ?: 'El cliente no dejó comentarios adicionales.' }}</p>
 
                     {{-- 🖼️ Galería --}}
                     @if(isset($r->imagenes) && $r->imagenes->count() > 0)

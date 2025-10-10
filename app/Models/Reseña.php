@@ -14,6 +14,8 @@ class Reseña extends Model
     protected $fillable = [
         'producto_id',
         'cliente_id',
+        'pedido_id',
+        'pedido_item_id',
         'estrellas',
         'comentario',
         'respuesta_vendedor', // 💬 respuesta del vendedor
@@ -33,6 +35,22 @@ class Reseña extends Model
     public function cliente()
     {
         return $this->belongsTo(User::class, 'cliente_id');
+    }
+
+    /**
+     * 🔹 Reseña asociada a un pedido (compra del supermercado).
+     */
+    public function pedido()
+    {
+        return $this->belongsTo(Pedido::class, 'pedido_id');
+    }
+
+    /**
+     * 🔹 Reseña asociada a un ítem puntual del pedido.
+     */
+    public function pedidoItem()
+    {
+        return $this->belongsTo(PedidoItem::class, 'pedido_item_id');
     }
 
     /**

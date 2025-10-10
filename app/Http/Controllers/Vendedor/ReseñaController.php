@@ -24,7 +24,8 @@ class ReseñaController extends Controller
             ->with([
                 'producto:id,nombre,vendor_id',
                 'cliente:id,name',
-                'imagenes' // relación con las fotos subidas por el cliente
+                'imagenes', // relación con las fotos subidas por el cliente
+                'pedido:id,codigo'
             ])
             ->orderByDesc('created_at')
             ->get();

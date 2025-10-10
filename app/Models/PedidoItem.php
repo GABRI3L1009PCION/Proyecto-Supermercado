@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PedidoItem extends Model
 {
@@ -88,6 +89,11 @@ class PedidoItem extends Model
     public function repartidor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'repartidor_id');
+    }
+
+    public function reseña(): HasOne
+    {
+        return $this->hasOne(Reseña::class, 'pedido_item_id');
     }
 
     /** Accesores */
