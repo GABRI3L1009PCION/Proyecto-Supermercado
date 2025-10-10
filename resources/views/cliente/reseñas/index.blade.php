@@ -82,7 +82,7 @@
 
                                         <div class="flex flex-col sm:flex-row sm:items-center gap-3">
                                             <label class="text-sm font-medium text-gray-700 flex items-center">
-                                                Calificación
+                                                Calificación general
                                                 <span class="text-red-500 ml-1">*</span>
                                             </label>
                                             <select name="estrellas" required
@@ -92,6 +92,61 @@
                                                     <option value="{{ $i }}">{{ $i }} {{ \Illuminate\Support\Str::plural('estrella', $i) }}</option>
                                                 @endfor
                                             </select>
+                                        </div>
+
+                                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Uso diario</label>
+                                                <select name="uso_score" class="mt-1 w-full rounded-lg border-gray-300 focus:border-amber-400 focus:ring-amber-200 text-sm">
+                                                    <option value="" selected>No aplica</option>
+                                                    @for ($i = 5; $i >= 1; $i--)
+                                                        <option value="{{ $i }}">{{ $i }} / 5</option>
+                                                    @endfor
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Comodidad</label>
+                                                <select name="comodidad_score" class="mt-1 w-full rounded-lg border-gray-300 focus:border-amber-400 focus:ring-amber-200 text-sm">
+                                                    <option value="" selected>No aplica</option>
+                                                    @for ($i = 5; $i >= 1; $i--)
+                                                        <option value="{{ $i }}">{{ $i }} / 5</option>
+                                                    @endfor
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Duración</label>
+                                                <select name="duracion_score" class="mt-1 w-full rounded-lg border-gray-300 focus:border-amber-400 focus:ring-amber-200 text-sm">
+                                                    <option value="" selected>No aplica</option>
+                                                    @for ($i = 5; $i >= 1; $i--)
+                                                        <option value="{{ $i }}">{{ $i }} / 5</option>
+                                                    @endfor
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid gap-4 sm:grid-cols-2">
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">¿Cómo sentiste la talla?</label>
+                                                <select name="talla_percibida" class="mt-1 w-full rounded-lg border-gray-300 focus:border-amber-400 focus:ring-amber-200 text-sm">
+                                                    <option value="" selected>Selecciona una opción</option>
+                                                    <option value="pequena">Más pequeña de lo esperado</option>
+                                                    <option value="exacta">Tal como la esperaba</option>
+                                                    <option value="grande">Más grande de lo esperado</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Reacciona a tu compra</label>
+                                                <div class="mt-2 flex flex-wrap gap-2" data-reaction-group>
+                                                    @foreach (\App\Models\Reseña::REACCIONES as $valor => $texto)
+                                                        <button type="button"
+                                                                class="reaction-option inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-300"
+                                                                data-value="{{ $valor }}">
+                                                            <i class="fas fa-heart"></i> {{ $texto }}
+                                                        </button>
+                                                    @endforeach
+                                                    <input type="hidden" name="reaccion" value="">
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div>
@@ -179,6 +234,36 @@
                                         <p class="mt-3 text-gray-600 leading-relaxed">{{ $reseña->comentario }}</p>
                                     @endif
 
+                                    @php
+                                        $hasScores = $reseña->uso_score || $reseña->comodidad_score || $reseña->duracion_score;
+                                    @endphp
+
+                                    @if ($hasScores)
+                                        <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-rose-600">
+                                            @if ($reseña->uso_score)
+                                                <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-rose-600"><i class="fas fa-sun"></i> Uso {{ $reseña->uso_score }}/5</span>
+                                            @endif
+                                            @if ($reseña->comodidad_score)
+                                                <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-rose-600"><i class="fas fa-feather"></i> Comodidad {{ $reseña->comodidad_score }}/5</span>
+                                            @endif
+                                            @if ($reseña->duracion_score)
+                                                <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-rose-600"><i class="fas fa-hourglass-half"></i> Duración {{ $reseña->duracion_score }}/5</span>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    @if ($reseña->talla_percebida_label)
+                                        <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">
+                                            <i class="fas fa-ruler-horizontal"></i> {{ $reseña->talla_percebida_label }}
+                                        </div>
+                                    @endif
+
+                                    @if ($reseña->reaccion_label)
+                                        <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">
+                                            <i class="fas fa-heart"></i> {{ $reseña->reaccion_label }}
+                                        </div>
+                                    @endif
+
                                     @if (isset($reseña->fotos) && $reseña->fotos->count())
                                         <div class="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                                             @foreach ($reseña->fotos as $foto)
@@ -232,6 +317,33 @@
                 reader.readAsDataURL(file);
             });
         }, { passive: true });
+
+        document.addEventListener('click', function (event) {
+            const option = event.target.closest('.reaction-option');
+            if (!option) return;
+
+            event.preventDefault();
+            const group = option.closest('[data-reaction-group]');
+            if (!group) return;
+
+            const hiddenInput = group.querySelector('input[name="reaccion"]');
+            if (!hiddenInput) return;
+
+            const previous = group.querySelector('.reaction-option.is-active');
+            if (previous) {
+                previous.classList.remove('is-active', 'bg-rose-500', 'text-white', 'border-rose-500');
+                previous.classList.add('bg-rose-50', 'text-rose-600', 'border-rose-200');
+            }
+
+            if (hiddenInput.value === option.dataset.value) {
+                hiddenInput.value = '';
+                return;
+            }
+
+            hiddenInput.value = option.dataset.value;
+            option.classList.remove('bg-rose-50', 'text-rose-600', 'border-rose-200');
+            option.classList.add('is-active', 'bg-rose-500', 'text-white', 'border-rose-500');
+        });
 
         // Feedback de envío
         document.addEventListener('DOMContentLoaded', function() {

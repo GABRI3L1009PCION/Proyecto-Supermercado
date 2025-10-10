@@ -72,6 +72,71 @@
         .average-stars i { color: var(--estrella); font-size: 1.3rem; margin-right: 2px; }
         .average-info { text-align: right; line-height: 1.4; }
 
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .insight-card {
+            background: #fff7fb;
+            border: 1px solid rgba(209, 107, 165, 0.3);
+            border-radius: 14px;
+            padding: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            box-shadow: 0 10px 30px rgba(209, 107, 165, 0.12);
+        }
+
+        .insight-card span { font-size: 0.78rem; text-transform: uppercase; color: var(--gris); letter-spacing: .08em; }
+        .insight-card strong { font-size: 1.4rem; color: var(--vino); }
+        .insight-card small { font-size: 0.75rem; color: var(--gris); }
+
+        .talla-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 2rem;
+        }
+
+        .talla-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .talla-label {
+            min-width: 110px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--vino);
+        }
+
+        .talla-progress {
+            flex: 1;
+            height: 10px;
+            border-radius: 999px;
+            background: #f3d5e3;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .talla-progress span {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--rosa), var(--vino));
+            transform-origin: left;
+        }
+
+        .talla-value {
+            font-size: 0.8rem;
+            color: var(--gris);
+            font-weight: 600;
+        }
+
         .review-card {
             border-bottom: 1px solid #eee;
             padding: 1.2rem 0;
@@ -117,6 +182,54 @@
 
         .review-text { color: #333; margin-top: .5rem; font-size: .95rem; line-height: 1.5; }
         .review-date { color: var(--gris); font-size: .8rem; margin-top: .3rem; }
+
+        .score-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.6rem;
+        }
+
+        .score-chip {
+            background: rgba(90, 10, 46, 0.08);
+            color: var(--vino);
+            padding: 0.35rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .score-chip i { color: var(--estrella); }
+
+        .reaction-badge {
+            margin-top: 0.6rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: linear-gradient(135deg, rgba(209, 107, 165, 0.18), rgba(90, 10, 46, 0.18));
+            color: var(--vino);
+            border: 1px solid rgba(209, 107, 165, 0.35);
+            border-radius: 999px;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .fit-pill {
+            margin-top: 0.6rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(90, 10, 46, 0.08);
+            color: var(--vino);
+            font-weight: 600;
+        }
 
         /* 🖼️ Galería de imágenes */
         .review-gallery {
@@ -253,6 +366,67 @@
             </div>
         </div>
 
+        {{-- 🔹 Métricas de experiencia --}}
+        @php
+            $totalTallas = $tallaDistribucion->sum();
+            $topReactionKey = $reaccionesResumen->keys()->first();
+            $topReactionLabel = $topReactionKey ? (\App\Models\Reseña::REACCIONES[$topReactionKey] ?? \Illuminate\Support\Str::title(str_replace('_', ' ', $topReactionKey))) : null;
+        @endphp
+
+        <div class="insights-grid">
+            <div class="insight-card">
+                <span>Uso diario</span>
+                <strong>{{ !is_null($promediosCategoria['uso']) ? number_format($promediosCategoria['uso'], 2) : '—' }}</strong>
+                <small>Promedio de usabilidad</small>
+            </div>
+            <div class="insight-card">
+                <span>Comodidad</span>
+                <strong>{{ !is_null($promediosCategoria['comodidad']) ? number_format($promediosCategoria['comodidad'], 2) : '—' }}</strong>
+                <small>Percepción de confort</small>
+            </div>
+            <div class="insight-card">
+                <span>Duración</span>
+                <strong>{{ !is_null($promediosCategoria['duracion']) ? number_format($promediosCategoria['duracion'], 2) : '—' }}</strong>
+                <small>Resistencia en el tiempo</small>
+            </div>
+            <div class="insight-card">
+                <span>Reacciones destacadas</span>
+                <strong>{{ $reaccionesResumen->sum() }}</strong>
+                <small>{{ $topReactionLabel ?? 'Sin reacciones aún' }}</small>
+            </div>
+        </div>
+
+        @if($totalTallas > 0)
+            <div class="talla-bars" aria-label="Distribución de tallas percibidas">
+                @foreach($tallaDistribucion as $clave => $cantidad)
+                    @php
+                        $porcentaje = $totalTallas ? round(($cantidad / $totalTallas) * 100) : 0;
+                        $label = match($clave) {
+                            'pequena' => 'Más pequeña',
+                            'exacta' => 'Talla exacta',
+                            'grande' => 'Más grande',
+                            default => ucfirst($clave),
+                        };
+                    @endphp
+                    <div class="talla-row">
+                        <span class="talla-label">{{ $label }}</span>
+                        <div class="talla-progress">
+                            <span style="transform: scaleX({{ $porcentaje / 100 }});"></span>
+                        </div>
+                        <span class="talla-value">{{ $porcentaje }}%</span>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        @if($reaccionesResumen->isNotEmpty())
+            <div class="score-chips" aria-label="Reacciones favoritas">
+                @foreach($reaccionesResumen as $clave => $conteo)
+                    <span class="reaction-badge"><i class="fas fa-heart"></i> {{ \App\Models\Reseña::REACCIONES[$clave] ?? \Illuminate\Support\Str::title(str_replace('_', ' ', $clave)) }} · {{ $conteo }}</span>
+                @endforeach
+            </div>
+        @endif
+
         {{-- 🔹 Listado de reseñas --}}
         @if($reseñas->isEmpty())
             <p class="empty-state">Aún no tienes reseñas.</p>
@@ -279,6 +453,34 @@
                     </div>
 
                     <p class="review-text">{{ $r->comentario ?: 'El cliente no dejó comentarios adicionales.' }}</p>
+
+                    @php
+                        $hasScores = $r->uso_score || $r->comodidad_score || $r->duracion_score;
+                    @endphp
+
+                    @if($hasScores)
+                        <div class="score-chips">
+                            @if($r->uso_score)
+                                <span class="score-chip"><i class="fas fa-sun"></i> Uso {{ $r->uso_score }}/5</span>
+                            @endif
+                            @if($r->comodidad_score)
+                                <span class="score-chip"><i class="fas fa-feather"></i> Comodidad {{ $r->comodidad_score }}/5</span>
+                            @endif
+                            @if($r->duracion_score)
+                                <span class="score-chip"><i class="fas fa-hourglass-half"></i> Duración {{ $r->duracion_score }}/5</span>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if($r->talla_percebida_label)
+                        <div class="fit-pill"><i class="fas fa-ruler-horizontal"></i> {{ $r->talla_percebida_label }}</div>
+                    @endif
+
+                    @if($r->reaccion_label)
+                        <button type="button" class="reaction-badge" aria-label="Reacción del cliente">
+                            <i class="fas fa-heart"></i> {{ $r->reaccion_label }}
+                        </button>
+                    @endif
 
                     {{-- 🖼️ Galería --}}
                     @if(isset($r->imagenes) && $r->imagenes->count() > 0)

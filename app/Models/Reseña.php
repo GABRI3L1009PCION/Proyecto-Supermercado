@@ -9,6 +9,15 @@ class Reseña extends Model
 {
     use HasFactory;
 
+    public const TALLAS = ['pequena', 'exacta', 'grande'];
+
+    public const REACCIONES = [
+        'me_encanta' => '¡Me encanta!',
+        'lo_volveria_a_comprar' => 'Lo volvería a comprar',
+        'es_para_regalo' => 'Es para regalo',
+        'necesita_mejoras' => 'Necesita mejoras',
+    ];
+
     protected $table = 'reseñas';
 
     protected $fillable = [
@@ -17,6 +26,11 @@ class Reseña extends Model
         'pedido_id',
         'pedido_item_id',
         'estrellas',
+        'uso_score',
+        'comodidad_score',
+        'duracion_score',
+        'talla_percibida',
+        'reaccion',
         'comentario',
         'respuesta_vendedor', // 💬 respuesta del vendedor
     ];
