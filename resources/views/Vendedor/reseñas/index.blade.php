@@ -25,6 +25,7 @@
             border-radius: 14px;
             box-shadow: 0 6px 25px rgba(0,0,0,0.08);
             padding: 2rem;
+            animation: fadeIn .45s ease;
         }
 
         .reviews-header {
@@ -74,8 +75,29 @@
         .review-card {
             border-bottom: 1px solid #eee;
             padding: 1.2rem 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            animation: slideUp .45s ease both;
+            animation-delay: calc(.05s * var(--delay, 0));
+            z-index: 0;
         }
         .review-card:last-child { border-bottom: none; }
+        .review-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            pointer-events: none;
+            opacity: 0;
+            box-shadow: 0 20px 45px rgba(90, 10, 46, 0.08);
+            transition: opacity .3s ease;
+            z-index: -1;
+        }
+        .review-card:hover::after {
+            opacity: 1;
+        }
 
         .review-header {
             display: flex;
@@ -103,16 +125,24 @@
             gap: 10px;
             margin-top: 10px;
         }
-        .review-gallery img {
+        .review-gallery a {
+            display: block;
             width: 100px;
             height: 100px;
-            object-fit: cover;
-            border-radius: 10px;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: transform 0.2s;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+            transition: transform .25s ease, box-shadow .25s ease;
         }
-        .review-gallery img:hover { transform: scale(1.05); }
+        .review-gallery img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .review-gallery a:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.16);
+        }
 
         /* 💬 Respuesta del vendedor */
         .reply-box {
@@ -168,6 +198,30 @@
             80% { opacity: 1; }
             100% { opacity: 0; display: none; }
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 992px) {
+            .reviews-wrap { padding: 1.5rem; margin: 1.5rem auto; }
+            .average-box { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .average-info { text-align: left; }
+        }
+
+        @media (max-width: 640px) {
+            .reviews-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .reviews-header a { width: 100%; text-align: center; }
+            .review-header { flex-direction: column; align-items: flex-start; gap: .75rem; }
+            .review-gallery { gap: 8px; }
+            .review-gallery a { width: 80px; height: 80px; }
+        }
     </style>
 
     <div class="reviews-wrap">
@@ -204,7 +258,7 @@
             <p class="empty-state">Aún no tienes reseñas.</p>
         @else
             @foreach($reseñas as $r)
-                <div class="review-card">
+                <div class="review-card" style="--delay: {{ $loop->index }};">
                     <div class="review-header">
                         <div>
                             <div class="review-customer">
@@ -228,9 +282,11 @@
 
                     {{-- 🖼️ Galería --}}
                     @if(isset($r->imagenes) && $r->imagenes->count() > 0)
-                        <div class="review-gallery">
+                        <div class="review-gallery" role="list">
                             @foreach($r->imagenes as $img)
-                                <img src="{{ asset('storage/' . $img->ruta) }}" alt="Imagen de reseña">
+                                <a href="{{ asset('storage/' . $img->ruta) }}" target="_blank" rel="noopener" role="listitem">
+                                    <img src="{{ asset('storage/' . $img->ruta) }}" alt="Imagen de reseña del producto {{ $r->producto->nombre ?? '' }}">
+                                </a>
                             @endforeach
                         </div>
                     @endif

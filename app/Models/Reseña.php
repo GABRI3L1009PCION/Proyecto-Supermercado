@@ -21,6 +21,10 @@ class Reseña extends Model
         'respuesta_vendedor', // 💬 respuesta del vendedor
     ];
 
+    protected $with = [
+        'imagenes',
+    ];
+
     /**
      * 🔹 Una reseña pertenece a un producto.
      */
@@ -59,6 +63,14 @@ class Reseña extends Model
     public function imagenes()
     {
         return $this->hasMany(ReseñaImagen::class, 'reseña_id');
+    }
+
+    /**
+     * 🔹 Alias de compatibilidad para vistas antiguas que usaban ->fotos.
+     */
+    public function getFotosAttribute()
+    {
+        return $this->imagenes;
     }
 
     /**

@@ -16,10 +16,15 @@ class ReseñaController extends Controller
     public function index()
     {
         $vendedor = Auth::user();
+        $vendorId = $vendedor?->vendorId();
+
+        if (!$vendorId) {
+            abort(403, 'No se encontró un perfil de vendedor asociado.');
+        }
 
         // 🔹 Obtiene reseñas reales con relaciones
-        $reseñas = Reseña::whereHas('producto', function ($q) use ($vendedor) {
-            $q->where('vendor_id', $vendedor->id);
+        $reseñas = Reseña::whereHas('producto', function ($q) use ($vendorId) {
+            $q->where('vendor_id', $vendorId);
         })
             ->with([
                 'producto:id,nombre,vendor_id',
@@ -52,7 +57,9 @@ class ReseñaController extends Controller
         $reseña = Reseña::with('producto')->findOrFail($reseñaId);
 
         // 🔒 Seguridad: solo el vendedor propietario puede responder
-        if ($reseña->producto->vendor_id !== Auth::id()) {
+        $vendorId = Auth::user()?->vendorId();
+
+        if (!$vendorId || $reseña->producto->vendor_id !== $vendorId) {
             abort(403, 'No autorizado para responder esta reseña.');
         }
 

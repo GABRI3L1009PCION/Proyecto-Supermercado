@@ -55,7 +55,7 @@
                     </div>
                 @else
                     @foreach ($pendientes as $item)
-                        <div class="border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow transition duration-200">
+                        <div class="border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-lg transition duration-200 review-pending-card" style="--delay: {{ $loop->index }};">
                             <div class="flex flex-col md:flex-row md:items-start gap-5">
                                 <!-- Imagen de producto -->
                                 <div class="flex-shrink-0">
@@ -158,7 +158,7 @@
                     </div>
                 @else
                     @foreach ($reseñas as $reseña)
-                        <div class="border border-gray-100 rounded-xl p-5">
+                        <div class="border border-gray-100 rounded-xl p-5 review-history-card" style="--delay: {{ $loop->index }};">
                             <div class="flex flex-col md:flex-row md:items-start gap-4">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between flex-wrap gap-2">
@@ -280,5 +280,22 @@
         .submit-review-btn:focus{ outline:2px solid var(--oro); outline-offset:2px; }
 
         select, textarea, input{ transition: all .2s ease-in-out; }
+
+        .review-pending-card,
+        .review-history-card{
+            animation: cardFade .45s ease both;
+            animation-delay: calc(.05s * var(--delay, 0));
+            position: relative;
+        }
+
+        .review-pending-card:hover,
+        .review-history-card:hover{
+            transform: translateY(-2px);
+        }
+
+        @keyframes cardFade{
+            from{opacity:0;transform:translateY(16px);}
+            to{opacity:1;transform:translateY(0);}
+        }
     </style>
 @endsection
