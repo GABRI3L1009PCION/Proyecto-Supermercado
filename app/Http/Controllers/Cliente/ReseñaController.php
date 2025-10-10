@@ -17,13 +17,13 @@ class ReseñaController extends Controller
     {
         $cliente = Auth::user();
 
-        $itemsEntregados = PedidoItem::with(['producto', 'pedido', 'reseña.imagenes'])
+        $itemsEntregados = PedidoItem::with(['producto', 'pedido', 'reseña'])
             ->whereHas('pedido', fn ($q) => $q->where('user_id', $cliente->id))
             ->where('fulfillment_status', PedidoItem::ESTADO_ENTREGADO)
             ->orderByDesc('updated_at')
             ->get();
 
-        $reseñas = Reseña::with(['producto', 'pedido', 'imagenes'])
+        $reseñas = Reseña::with(['producto', 'pedido'])
             ->where('cliente_id', $cliente->id)
             ->orderByDesc('created_at')
             ->get();
@@ -47,7 +47,6 @@ class ReseñaController extends Controller
         $data = $request->validate([
             'estrellas' => ['required', 'integer', 'min:1', 'max:5'],
             'comentario' => ['nullable', 'string', 'max:600'],
-            'foto' => ['nullable', 'image', 'max:2048'],
         ]);
 
         if ($pedidoItem->reseña) {
@@ -55,7 +54,7 @@ class ReseñaController extends Controller
                 ->with('warning', 'Este producto ya cuenta con una reseña.');
         }
 
-        $reseña = Reseña::create([
+        Reseña::create([
             'producto_id' => $pedidoItem->producto_id,
             'cliente_id' => $cliente->id,
             'pedido_id' => $pedidoItem->pedido_id,
@@ -63,11 +62,6 @@ class ReseñaController extends Controller
             'estrellas' => $data['estrellas'],
             'comentario' => $data['comentario'] ?? null,
         ]);
-
-        if ($request->hasFile('foto')) {
-            $ruta = $request->file('foto')->store('reseñas', 'public');
-            $reseña->imagenes()->create(['ruta' => $ruta]);
-        }
 
         return redirect()->route('cliente.reseñas.index')
             ->with('status', '¡Gracias! Tu reseña fue registrada correctamente.');
