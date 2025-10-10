@@ -9,7 +9,7 @@ class ReseñaController extends Controller
 {
     public function index()
     {
-        $reseñas = Reseña::with(['producto.vendor', 'cliente', 'pedido'])
+        $reseñas = Reseña::with(['producto.vendor', 'cliente', 'pedido', 'imagenes'])
             ->orderByDesc('created_at')
             ->paginate(15)
             ->withQueryString();

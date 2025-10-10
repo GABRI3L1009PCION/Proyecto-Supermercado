@@ -9,6 +9,15 @@ class Reseña extends Model
 {
     use HasFactory;
 
+    public const TALLAS = ['pequena', 'exacta', 'grande'];
+
+    public const REACCIONES = [
+        'me_encanta' => '¡Me encanta!',
+        'lo_volveria_a_comprar' => 'Lo volvería a comprar',
+        'es_para_regalo' => 'Es para regalo',
+        'necesita_mejoras' => 'Necesita mejoras',
+    ];
+
     protected $table = 'reseñas';
 
     protected $fillable = [
@@ -17,9 +26,41 @@ class Reseña extends Model
         'pedido_id',
         'pedido_item_id',
         'estrellas',
+        'uso_score',
+        'comodidad_score',
+        'duracion_score',
+        'talla_percibida',
+        'reaccion',
         'comentario',
         'respuesta_vendedor', // 💬 respuesta del vendedor
     ];
+
+    protected $with = [
+        'imagenes',
+    ];
+
+    protected $casts = [
+        'uso_score' => 'integer',
+        'comodidad_score' => 'integer',
+        'duracion_score' => 'integer',
+        'talla_percibida' => 'string',
+        'reaccion' => 'string',
+    ];
+
+    public function getTallaPercebidaLabelAttribute(): ?string
+    {
+        return match ($this->talla_percibida) {
+            'pequena' => 'Pequeña',
+            'exacta' => 'Tal como la esperaba',
+            'grande' => 'Más grande de lo esperado',
+            default => null,
+        };
+    }
+
+    public function getReaccionLabelAttribute(): ?string
+    {
+        return self::REACCIONES[$this->reaccion] ?? null;
+    }
 
     /**
      * 🔹 Una reseña pertenece a un producto.
@@ -59,6 +100,14 @@ class Reseña extends Model
     public function imagenes()
     {
         return $this->hasMany(ReseñaImagen::class, 'reseña_id');
+    }
+
+    /**
+     * 🔹 Alias de compatibilidad para vistas antiguas que usaban ->fotos.
+     */
+    public function getFotosAttribute()
+    {
+        return $this->imagenes;
     }
 
     /**
