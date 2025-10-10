@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CarritoController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\Cliente\ReseñaController as ClienteReseñaController;
 
 // Auth / perfil
 use App\Http\Controllers\ProfileController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\RepartidorAdminController;
 use App\Http\Controllers\Admin\VendedorAdminController;
 use App\Http\Controllers\Admin\DeliveryZoneController;
+use App\Http\Controllers\Admin\ReseñaController as AdminReseñaController;
 
 // Vendedor
 use App\Http\Controllers\Vendedor\PanelVendedorController;
@@ -97,6 +99,12 @@ Route::middleware(['auth', 'role:cliente'])->group(function () {
     Route::get('/cliente/pedido/confirmado', [ClienteController::class, 'pedidoConfirmado'])->name('cliente.pedido.confirmado');
     Route::get('/cliente/pedido/{pedido}', [PedidoController::class, 'showCliente'])->whereNumber('pedido')->name('cliente.estado.pedido');
     Route::get('/cliente/pedido/{pedido}/json', [PedidoController::class, 'estadoJson'])->whereNumber('pedido')->name('cliente.estado.json');
+
+    // Reseñas de productos
+    Route::get('/cliente/reseñas', [ClienteReseñaController::class, 'index'])->name('cliente.reseñas.index');
+    Route::post('/cliente/reseñas/{pedidoItem}', [ClienteReseñaController::class, 'store'])
+        ->whereNumber('pedidoItem')
+        ->name('cliente.reseñas.store');
 });
 
 /*
@@ -156,6 +164,9 @@ Route::middleware(['auth', 'role:admin'])
 
         // Vendedores
         Route::resource('/vendedores', VendedorAdminController::class)->names('vendedores');
+
+        // Reseñas de productos
+        Route::get('/reseñas', [AdminReseñaController::class, 'index'])->name('reseñas.index');
     });
 
 /*

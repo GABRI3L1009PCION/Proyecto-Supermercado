@@ -5,6 +5,7 @@
     <title>Supermercado Atlantia</title>
     <link rel="icon" href="{{ asset('storage/logo.png') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         :root{
@@ -98,6 +99,10 @@
         .producto-info h3{margin:0 0 8px;font-size:1rem;font-weight:800;color:var(--vino-oscuro);line-height:1.3}
         .producto-categoria{font-size:.82rem;font-weight:700;color:var(--vino);margin-bottom:8px}
         .producto-info p{font-size:.88rem;color:var(--gris-texto);flex-grow:1;margin-bottom:12px;line-height:1.4}
+        .producto-rating{display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;font-size:.82rem;flex-wrap:wrap}
+        .producto-rating .stars{color:#fbbf24;display:flex;gap:2px;font-size:0.9rem}
+        .producto-rating .rating-text{color:var(--gris-texto);font-weight:600}
+        .producto-rating .rating-text span{font-weight:700;color:var(--vino-oscuro)}
 
         /* Formulario de agregar producto */
         .producto-add-form{display:flex;flex-direction:column;gap:.6rem;margin-top:auto}
@@ -308,6 +313,9 @@
         </a>
 
         @auth
+            <a href="{{ route('cliente.reseñas.index') }}" class="{{ request()->routeIs('cliente.reseñas.*') ? 'activo' : '' }}">
+                Mis reseñas
+            </a>
             @if(!empty($pedidoActivo))
                 <a href="{{ route('cliente.estado.pedido', $pedidoActivo) }}" class="estado-btn" title="Ver estado del pedido">
                     Ver estado del pedido
@@ -379,6 +387,26 @@
                     <h3>{{ $producto->nombre }}</h3>
                     <div class="producto-categoria">{{ $producto->categoria?->nombre ?? 'Sin categoría' }}</div>
                     <p>{{ $producto->descripcion }}</p>
+
+                    @php
+                        $ratingPromedio = round($producto->reseñas_avg_estrellas ?? 0, 1);
+                        $ratingConteo = $producto->reseñas_count ?? 0;
+                    @endphp
+
+                    <div class="producto-rating">
+                        <div class="stars">
+                            @for ($i = 1; $i <= 5; $i++)
+                                <i class="{{ $i <= $ratingPromedio ? 'fas' : 'far' }} fa-star"></i>
+                            @endfor
+                        </div>
+                        @if ($ratingConteo > 0)
+                            <div class="rating-text">
+                                <span>{{ number_format($ratingPromedio, 1) }}</span> de 5 • {{ $ratingConteo }} {{ \Illuminate\Support\Str::plural('reseña', $ratingConteo) }}
+                            </div>
+                        @else
+                            <div class="rating-text">Sé la primera persona en reseñar</div>
+                        @endif
+                    </div>
 
                     {{-- Footer de la tarjeta: precio + cantidad arriba, botón ABAJO --}}
                     <form class="producto-add-form" method="POST" action="{{ route('carrito.agregar') }}">

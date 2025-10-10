@@ -16,7 +16,9 @@ class CarritoController extends Controller
 {
     public function catalogo(Request $request)
     {
-        $query = Producto::with('categoria');
+        $query = Producto::with('categoria')
+            ->withCount('reseñas')
+            ->withAvg('reseñas', 'estrellas');
 
         if ($request->filled('buscar')) {
             $query->where('nombre', 'like', '%' . trim($request->buscar) . '%');
