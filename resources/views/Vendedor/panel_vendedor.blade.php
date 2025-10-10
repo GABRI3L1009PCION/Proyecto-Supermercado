@@ -15,13 +15,10 @@
             --primary: #5a0a2e;
             --primary-hover: #430724;
             --secondary: #d16ba5;
-            --secondary-dark: #b2548d;
             --success: #68b684;
             --warning: #f4a259;
             --danger: #e94f64;
             --light: #f6eef2;
-            --rose: #fbeaf0;
-            --blush: #f2d1da;
             --dark: #3a0821;
             --gray: #9c8c92;
             --sidebar-width: 260px;
@@ -87,37 +84,10 @@
            Cards (KPIs)
         ========================== */
         .stats-cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1rem; }
-        .stat-card {
-            background: linear-gradient(160deg, rgba(90,10,46,0.92), rgba(209,107,165,0.85));
-            color: #fff;
-            border-radius: 18px;
-            padding: 1.35rem 1.25rem;
-            text-align: left;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 18px 28px rgba(90,10,46,0.22);
-        }
-        .stat-card:nth-child(2) {
-            background: linear-gradient(160deg, rgba(209,107,165,0.92), rgba(122,25,65,0.88));
-        }
-        .stat-card:nth-child(3) {
-            background: linear-gradient(160deg, rgba(90,10,46,0.95), rgba(153,36,83,0.85));
-        }
-        .stat-card:nth-child(4) {
-            background: linear-gradient(160deg, rgba(122,25,65,0.92), rgba(209,107,165,0.78));
-        }
-        .stat-card::after {
-            content: "";
-            position: absolute;
-            inset: auto -25% -40% auto;
-            width: 150px;
-            height: 150px;
-            background: rgba(255,255,255,0.12);
-            border-radius: 55% 45% 65% 35%;
-        }
-        .stat-icon { font-size: 1.7rem; margin-bottom: .7rem; color: rgba(255,255,255,0.85); }
-        .stat-number { font-size: 2rem; font-weight: 700; color: #fff; line-height: 1; letter-spacing: .5px; }
-        .stat-title { margin-top: .35rem; color: rgba(255,255,255,0.78); font-size: .95rem; }
+        .stat-card { background: rgba(255,255,255,0.95); border-radius: 16px; padding: 1.25rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+        .stat-icon { font-size: 1.7rem; margin-bottom: .6rem; color: var(--secondary); }
+        .stat-number { font-size: 1.6rem; font-weight: 700; color: var(--dark); line-height: 1; }
+        .stat-title { margin-top: .35rem; color: var(--gray); font-size: .9rem; }
 
         /* =========================
            Perfil del vendedor
@@ -257,79 +227,43 @@
             font-size: 1.8rem;
             font-weight: 700;
         }
-        .reviews-score strong { font-size: 2rem; line-height: 1; }
         .reviews-score span { font-size: .85rem; display: block; color: var(--gray); font-weight: 500; }
         .reviews-details { color: var(--dark); }
         .reviews-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-            gap: 1.35rem;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
         }
         .review-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(251,234,240,0.92) 100%);
-            border-radius: 20px;
-            padding: 1.35rem;
-            box-shadow: 0 18px 30px rgba(90,10,46,0.12);
-            border: 1px solid rgba(209,107,165,0.18);
+            background: rgba(255,255,255,0.9);
+            border-radius: 18px;
+            padding: 1.25rem;
+            box-shadow: 0 12px 25px rgba(58,8,33,0.08);
+            border: 1px solid rgba(90,10,46,0.08);
             display: flex;
             flex-direction: column;
-            gap: .85rem;
+            gap: .75rem;
         }
         .review-header {
             display: flex;
-            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+            gap: .5rem;
         }
-        .review-product-thumb {
-            width: 72px;
-            height: 72px;
-            flex-shrink: 0;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 2px solid rgba(209,107,165,0.28);
-        }
-        .review-product-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .review-header-details {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: .45rem;
-        }
-        .review-product { font-size: .9rem; color: var(--gray); }
-        .review-customer { font-weight: 700; color: var(--dark); font-size: 1.05rem; }
-        .review-pills { display: flex; flex-wrap: wrap; gap: .35rem; }
-        .review-pill {
-            background: rgba(209,107,165,0.15);
-            color: var(--primary);
-            padding: .25rem .65rem;
-            border-radius: 999px;
-            font-size: .75rem;
-            font-weight: 600;
-            letter-spacing: .2px;
-        }
+        .review-customer { font-weight: 600; color: var(--dark); }
+        .review-product { font-size: .85rem; color: var(--gray); }
         .star-rating {
             display: inline-flex;
             gap: .2rem;
-            color: #ffb347;
-            font-size: 1.05rem;
+            color: #f7b733;
+            font-size: 1rem;
         }
         .review-text {
             color: #5a3c4a;
-            line-height: 1.6;
-            font-size: .96rem;
+            line-height: 1.55;
+            font-size: .95rem;
         }
         .review-meta { font-size: .8rem; color: var(--gray); display: flex; align-items: center; gap: .35rem; }
-        .review-gallery { display: flex; gap: .5rem; }
-        .review-gallery img {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
-            object-fit: cover;
-            border: 1px solid rgba(209,107,165,0.24);
-        }
 
         /* =========================
            Secciones
@@ -492,7 +426,7 @@
                                 <p style="margin-top:.35rem;color:var(--gray);font-size:.9rem;">Muestra cómo valoran tus productos los compradores, estilo Shein.</p>
                             </div>
                             <div class="reviews-summary">
-                                <div class="reviews-score"><strong id="average-score">4.8</strong><span>promedio</span></div>
+                                <div class="reviews-score">4.8<span>promedio</span></div>
                                 <div class="reviews-details">
                                     <div class="star-rating">
                                         <i class="fas fa-star"></i>
@@ -501,95 +435,63 @@
                                         <i class="fas fa-star"></i>
                                         <i class="fas fa-star-half-alt"></i>
                                     </div>
-                                    <p id="reviews-count" style="margin-top:.25rem;font-size:.9rem;color:var(--gray);">Basado en 128 reseñas verificadas</p>
+                                    <p style="margin-top:.25rem;font-size:.9rem;color:var(--gray);">Basado en 128 reseñas verificadas</p>
                                 </div>
                             </div>
                         </div>
 
                         <div class="reviews-grid">
-                            <article class="review-card" data-score="5">
+                            <article class="review-card">
                                 <div class="review-header">
-                                    <div class="review-product-thumb">
-                                        <img src="https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=300&q=80" alt="Manzana Gala premium">
-                                    </div>
-                                    <div class="review-header-details">
+                                    <div>
                                         <div class="review-customer">Ana López</div>
                                         <div class="review-product">Pedido: Manzana Gala premium</div>
-                                        <div class="review-pills">
-                                            <span class="review-pill">Frescura ✨</span>
-                                            <span class="review-pill">Empaque cuidado</span>
-                                        </div>
-                                        <div class="star-rating" aria-label="Calificación 5 de 5">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                        </div>
+                                    </div>
+                                    <div class="star-rating">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
                                     </div>
                                 </div>
                                 <p class="review-text">“Llega siempre fresca y bien presentada. La atención de Tony es impecable, responde rápido y resuelve dudas.”</p>
-                                <div class="review-gallery">
-                                    <img src="https://images.unsplash.com/photo-1576402187878-974f70c890a5?auto=format&fit=crop&w=200&q=80" alt="Detalle del pedido de manzanas">
-                                    <img src="https://images.unsplash.com/photo-1506806732259-39c2d0268443?auto=format&fit=crop&w=200&q=80" alt="Bolsa de entrega del supermercado">
-                                </div>
                                 <div class="review-meta"><i class="fas fa-check-circle"></i> Compra verificada · 02 Ago 2025</div>
                             </article>
 
-                            <article class="review-card" data-score="4.5">
+                            <article class="review-card">
                                 <div class="review-header">
-                                    <div class="review-product-thumb">
-                                        <img src="https://images.unsplash.com/photo-1580915411954-282cb1c13979?auto=format&fit=crop&w=300&q=80" alt="Leche Entera Atlántia 1L">
-                                    </div>
-                                    <div class="review-header-details">
+                                    <div>
                                         <div class="review-customer">Carlos Méndez</div>
                                         <div class="review-product">Pedido: Leche Entera Atlántia 1L</div>
-                                        <div class="review-pills">
-                                            <span class="review-pill">Servicio rápido</span>
-                                            <span class="review-pill">Calidad Atlántia</span>
-                                        </div>
-                                        <div class="star-rating" aria-label="Calificación 4.5 de 5">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star-half-alt"></i>
-                                        </div>
+                                    </div>
+                                    <div class="star-rating">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star-half-alt"></i>
                                     </div>
                                 </div>
                                 <p class="review-text">“Buena relación calidad-precio y entregas puntuales. Podría incluir más promociones, pero el servicio es excelente.”</p>
-                                <div class="review-gallery">
-                                    <img src="https://images.unsplash.com/photo-1527169402691-feff5539e52c?auto=format&fit=crop&w=200&q=80" alt="Detalle del producto de lácteos">
-                                </div>
                                 <div class="review-meta"><i class="fas fa-smile"></i> Compra verificada · 28 Jul 2025</div>
                             </article>
 
-                            <article class="review-card" data-score="4">
+                            <article class="review-card">
                                 <div class="review-header">
-                                    <div class="review-product-thumb">
-                                        <img src="https://images.unsplash.com/photo-1586201375761-83865001e31b?auto=format&fit=crop&w=300&q=80" alt="Cereal integral 500g">
-                                    </div>
-                                    <div class="review-header-details">
+                                    <div>
                                         <div class="review-customer">María Fernanda</div>
                                         <div class="review-product">Pedido: Cereal Integral 500g</div>
-                                        <div class="review-pills">
-                                            <span class="review-pill">Tip del vendedor</span>
-                                            <span class="review-pill">Empaque eco</span>
-                                        </div>
-                                        <div class="star-rating" aria-label="Calificación 4 de 5">
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="fas fa-star"></i>
-                                            <i class="far fa-star"></i>
-                                        </div>
+                                    </div>
+                                    <div class="star-rating">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="far fa-star"></i>
                                     </div>
                                 </div>
                                 <p class="review-text">“Me encantó que enviara una nota con tips de conservación. Definitivamente seguiré comprando en su tienda.”</p>
-                                <div class="review-gallery">
-                                    <img src="https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&w=200&q=80" alt="Cereal integral y frutas">
-                                    <img src="https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=200&q=80" alt="Desayuno saludable">
-                                </div>
                                 <div class="review-meta"><i class="fas fa-gift"></i> Compra verificada · 20 Jul 2025</div>
                             </article>
                         </div>
@@ -920,39 +822,6 @@
                     reader.readAsDataURL(this.files[0]);
                 }
             });
-        }
-
-        var reviewCards = document.querySelectorAll('.review-card[data-score]');
-        if(reviewCards.length){
-            var totalScore = 0;
-            reviewCards.forEach(function(card){
-                var score = parseFloat(card.getAttribute('data-score')) || 0;
-                totalScore += score;
-            });
-
-            var average = totalScore / reviewCards.length;
-            var rounded = Math.round(average * 10) / 10;
-            var averageDisplay = document.getElementById('average-score');
-            if(averageDisplay){
-                averageDisplay.textContent = rounded.toFixed(1);
-            }
-            var reviewsCount = document.getElementById('reviews-count');
-            if(reviewsCount){
-                reviewsCount.textContent = 'Basado en ' + reviewCards.length + ' reseñas verificadas';
-            }
-            var summaryStars = document.querySelectorAll('.reviews-summary .star-rating i');
-            if(summaryStars.length){
-                summaryStars.forEach(function(star, index){
-                    var value = index + 1;
-                    if(rounded >= value){
-                        star.className = 'fas fa-star';
-                    } else if(rounded >= value - 0.5){
-                        star.className = 'fas fa-star-half-alt';
-                    } else {
-                        star.className = 'far fa-star';
-                    }
-                });
-            }
         }
     })();
 </script>
