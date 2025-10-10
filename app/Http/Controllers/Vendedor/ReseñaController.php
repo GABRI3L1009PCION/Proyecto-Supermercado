@@ -24,37 +24,14 @@ class ReseñaController extends Controller
             ->with([
                 'producto:id,nombre,vendor_id',
                 'cliente:id,name',
-                'imagenes' // relación con las fotos subidas por el cliente
+                'imagenes', // relación con las fotos subidas por el cliente
+                'pedido:id,codigo'
             ])
             ->orderByDesc('created_at')
             ->get();
 
-        // 🔹 Datos ficticios de respaldo (si no existen reseñas reales)
-        if ($reseñas->isEmpty()) {
-            $reseñas = collect([
-                (object)[
-                    'cliente'   => (object)['name' => 'Cindy Picon'],
-                    'producto'  => (object)['nombre' => 'Gloss Dios'],
-                    'estrellas' => 5,
-                    'comentario'=> 'Excelente calidad, entrega rápida y muy buena atención. ❤️',
-                    'created_at'=> now(),
-                    'imagenes'  => collect([]),
-                    'respuesta_vendedor' => null,
-                ],
-                (object)[
-                    'cliente'   => (object)['name' => 'Ana López'],
-                    'producto'  => (object)['nombre' => 'Shampoo Natural'],
-                    'estrellas' => 4,
-                    'comentario'=> 'Me encantó el olor y deja el cabello suave.',
-                    'created_at'=> now()->subDays(2),
-                    'imagenes'  => collect([]),
-                    'respuesta_vendedor' => null,
-                ],
-            ]);
-        }
-
         // 🔹 Cálculos de promedio y total
-        $promedio = round($reseñas->avg('estrellas'), 1);
+        $promedio = $reseñas->isNotEmpty() ? round($reseñas->avg('estrellas'), 1) : 0;
         $totalReseñas = $reseñas->count();
 
         // 🔹 Envía datos a la vista
