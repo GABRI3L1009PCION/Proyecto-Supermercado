@@ -10,9 +10,14 @@ use Illuminate\Validation\Rule;
 
 class DeliveryZoneController extends Controller
 {
+    /**
+     * Mostrar listado de zonas de entrega.
+     */
     public function index()
     {
-        $zones = DeliveryZone::orderBy('municipio')->orderBy('nombre')->paginate(20);
+        $zones = DeliveryZone::orderBy('municipio')
+            ->orderBy('nombre')
+            ->paginate(20);
 
         return view('admin.delivery_zones.index', [
             'zones'      => $zones,
@@ -20,6 +25,9 @@ class DeliveryZoneController extends Controller
         ]);
     }
 
+    /**
+     * Mostrar formulario para crear nueva zona.
+     */
     public function create()
     {
         return view('admin.delivery_zones.create', [
@@ -27,55 +35,74 @@ class DeliveryZoneController extends Controller
         ]);
     }
 
+    /**
+     * Guardar una nueva zona en la base de datos.
+     */
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validateData($request);
 
         DeliveryZone::create($data);
 
-        return redirect()->route('admin.delivery-zones.index')
+        return redirect()
+            ->route('admin.delivery-zones.index')
             ->with('success', 'Zona de entrega creada correctamente.');
     }
 
-    public function edit(DeliveryZone $delivery_zone)
+    /**
+     * Mostrar formulario para editar una zona existente.
+     */
+    public function edit(DeliveryZone $deliveryZone)
     {
         return view('admin.delivery_zones.edit', [
-            'zone'       => $delivery_zone,
+            'zone'       => $deliveryZone,
             'municipios' => DeliveryZone::municipiosDisponibles(),
         ]);
     }
 
-    public function update(Request $request, DeliveryZone $delivery_zone): RedirectResponse
+    /**
+     * Actualizar una zona de entrega existente.
+     */
+    public function update(Request $request, DeliveryZone $deliveryZone): RedirectResponse
     {
-        $data = $this->validateData($request, $delivery_zone->id);
+        $data = $this->validateData($request, $deliveryZone->id);
 
-        $delivery_zone->update($data);
+        $deliveryZone->update($data);
 
-        return redirect()->route('admin.delivery-zones.index')
+        return redirect()
+            ->route('admin.delivery-zones.index')
             ->with('success', 'Zona de entrega actualizada correctamente.');
     }
 
-    public function destroy(DeliveryZone $delivery_zone): RedirectResponse
+    /**
+     * Eliminar una zona de entrega de la base de datos.
+     */
+    public function destroy(DeliveryZone $deliveryZone): RedirectResponse
     {
-        $delivery_zone->delete();
+        $deliveryZone->delete();
 
-        return redirect()->route('admin.delivery-zones.index')
+        return redirect()
+            ->route('admin.delivery-zones.index')
             ->with('success', 'Zona eliminada correctamente.');
     }
 
+    /**
+     * Validar los datos de entrada del formulario.
+     */
     protected function validateData(Request $request, ?int $ignoreId = null): array
     {
         $municipios = DeliveryZone::municipiosDisponibles();
 
         $data = $request->validate([
-            'nombre'        => ['required', 'string', 'max:150'],
-            'municipio'     => ['required', 'string', Rule::in($municipios)],
-            'lat'           => ['nullable', 'numeric', 'between:-90,90'],
-            'lng'           => ['nullable', 'numeric', 'between:-180,180'],
-            'tarifa_base'   => ['required', 'numeric', 'min:0', 'max:500'],
-            'activo'        => ['nullable', 'boolean'],
+            'nombre'      => ['required', 'string', 'max:150'],
+            'municipio'   => ['required', 'string', Rule::in($municipios)],
+            'lat'         => ['nullable', 'numeric', 'between:-90,90'],
+            'lng'         => ['nullable', 'numeric', 'between:-180,180'],
+            'tarifa_base' => ['required', 'numeric', 'min:0', 'max:500'],
+            'activo'      => ['nullable', 'boolean'],
         ]);
 
+        // Si el checkbox no viene marcado, se interpreta como falso
         $data['activo'] = $request->boolean('activo', true);
 
         return $data;
