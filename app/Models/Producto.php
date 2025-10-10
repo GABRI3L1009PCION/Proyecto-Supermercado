@@ -25,32 +25,76 @@ class Producto extends Model
     ];
 
     protected $casts = [
-        'precio' => 'decimal:2',
+        'precio'         => 'decimal:2',
         'delivery_price' => 'decimal:2',
-        'stock'  => 'integer',
+        'stock'          => 'integer',
     ];
 
-    /** Vendedor dueño del producto (users.id) */
+    /* ========================================================
+     * 🔹 RELACIONES
+     * ======================================================== */
+
+    /**
+     * Vendedor dueño del producto (relación con User)
+     */
     public function vendor(): BelongsTo
     {
-        // Ojo: usamos User, no Vendor. La FK es vendor_id.
         return $this->belongsTo(User::class, 'vendor_id');
     }
 
+    /**
+     * Categoría a la que pertenece el producto
+     */
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(Categoria::class);
     }
 
-    /** Ítems de pedidos donde aparece este producto (comodidad) */
+    /**
+     * Ítems de pedidos donde aparece este producto
+     */
     public function pedidoItems(): HasMany
     {
         return $this->hasMany(PedidoItem::class, 'producto_id');
     }
 
-    /** Scope para filtrar por vendedor */
-    public function scopeDelVendor($q, $vendorId)
+    /**
+     * 🔹 Reseñas asociadas al producto
+     */
+    public function reseñas(): HasMany
     {
-        return $q->where('vendor_id', $vendorId);
+        return $this->hasMany(Reseña::class, 'producto_id');
+    }
+
+    /* ========================================================
+     * 🔹 MÉTODOS PERSONALIZADOS
+     * ======================================================== */
+
+    /**
+     * Retorna el promedio de estrellas del producto
+     */
+    public function promedioReseñas(): ?float
+    {
+        return $this->reseñas()->avg('estrellas');
+    }
+
+    /**
+     * Retorna el total de reseñas que tiene el producto
+     */
+    public function totalReseñas(): int
+    {
+        return $this->reseñas()->count();
+    }
+
+    /* ========================================================
+     * 🔹 SCOPES
+     * ======================================================== */
+
+    /**
+     * Scope para filtrar productos por vendedor
+     */
+    public function scopeDelVendor($query, $vendorId)
+    {
+        return $query->where('vendor_id', $vendorId);
     }
 }

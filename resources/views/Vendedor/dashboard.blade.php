@@ -21,12 +21,18 @@
             font-weight: 700;
         }
 
-        .vd-actions a {
-            margin-left: 10px;
+        .vd-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
         }
 
         .vd-btn {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
             padding: 0.5rem 1rem;
             border-radius: 8px;
             font-weight: 500;
@@ -34,14 +40,35 @@
             color: #fff;
             background-color: #6c757d;
             transition: all 0.2s ease-in-out;
+            border: none;
+            cursor: pointer;
+        }
+
+        .vd-btn i {
+            font-size: 0.9rem;
         }
 
         .vd-btn:hover {
             opacity: 0.85;
+            transform: translateY(-1px);
         }
 
         .vd-btn--primary {
             background-color: #198754;
+        }
+
+        .vd-btn--danger {
+            background-color: #dc3545;
+        }
+
+        .vd-btn--info {
+            background-color: #0dcaf0;
+            color: #000;
+        }
+
+        .vd-btn--warning {
+            background-color: #ffc107;
+            color: #000;
         }
 
         .vd-btn--small {
@@ -62,6 +89,7 @@
             border-radius: 10px;
             color: #fff;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            text-align: center;
         }
 
         .vd-card:nth-child(1) { background-color: #0d6efd; }
@@ -136,8 +164,28 @@
         <div class="vd-topbar">
             <h1 class="vd-title">Panel del vendedor</h1>
             <div class="vd-actions">
-                <a href="{{ route('vendedor.productos.create') }}" class="vd-btn vd-btn--primary">+ Nuevo producto</a>
-                <a href="{{ route('vendedor.productos.index') }}" class="vd-btn">Ver mis productos</a>
+                {{-- Botones de acción --}}
+                <a href="{{ route('vendedor.reseñas.index') }}" class="vd-btn vd-btn--info">
+                    <i class="fas fa-star"></i> Ver reseñas
+                </a>
+                <a href="{{ route('vendedor.perfil') }}" class="vd-btn vd-btn--warning">
+                    <i class="fas fa-user"></i> Ver perfil
+                </a>
+                <a href="{{ route('logout') }}"
+                   class="vd-btn vd-btn--danger"
+                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+
+                <a href="{{ route('vendedor.productos.create') }}" class="vd-btn vd-btn--primary">
+                    <i class="fas fa-plus"></i> Nuevo producto
+                </a>
+                <a href="{{ route('vendedor.productos.index') }}" class="vd-btn">
+                    <i class="fas fa-box"></i> Ver mis productos
+                </a>
             </div>
         </div>
 
@@ -198,7 +246,9 @@
                             <td><span class="vd-badge {{ $badge }}">{{ ucfirst($estado) }}</span></td>
                             <td>Q{{ number_format($it->cantidad * $it->precio_unitario, 2) }}</td>
                             <td>
-                                <a href="{{ route('vendedor.pedidos.show', ['pedido' => $it->pedido_id]) }}" class="vd-btn vd-btn--small">Gestionar</a>
+                                <a href="{{ route('vendedor.pedidos.show', ['pedido' => $it->pedido_id]) }}" class="vd-btn vd-btn--small">
+                                    <i class="fas fa-eye"></i> Gestionar
+                                </a>
                             </td>
                         </tr>
                     @empty

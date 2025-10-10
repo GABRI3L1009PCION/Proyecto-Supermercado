@@ -39,6 +39,8 @@ use App\Http\Controllers\Vendedor\ProductoController as VendedorProductoControll
 use App\Http\Controllers\Vendedor\PedidoController as VendedorPedidoController;
 use App\Http\Controllers\Vendedor\PedidoItemController;
 use App\Http\Controllers\Vendedor\ItemController;
+use App\Http\Controllers\Vendedor\ReseñaController;
+use App\Http\Controllers\Vendedor\VendedorPerfilController;
 
 // Cliente: tracking de pedido
 use App\Http\Controllers\PedidoController;
@@ -135,12 +137,7 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/', [AdminController::class, 'panel'])->name('panel');
 
         // Usuarios
-        Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
-        Route::get('/usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
-        Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
-        Route::get('/usuarios/{id}/edit', [UsuarioController::class, 'edit'])->whereNumber('id')->name('usuarios.edit');
-        Route::put('/usuarios/{id}', [UsuarioController::class, 'update'])->whereNumber('id')->name('usuarios.update');
-        Route::delete('/usuarios/{id}', [UsuarioController::class, 'destroy'])->whereNumber('id')->name('usuarios.destroy');
+        Route::resource('/usuarios', UsuarioController::class)->names('usuarios');
 
         // Productos y categorías
         Route::resource('/productos', ProductoController::class)->names('productos');
@@ -149,32 +146,16 @@ Route::middleware(['auth', 'role:admin'])
         // Pedidos
         Route::get('/pedidos', [AdminPedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido}', [AdminPedidoController::class, 'show'])->whereNumber('pedido')->name('pedidos.show');
-        Route::match(['post','put'], '/pedidos/{pedido}/asignar-repartidor', [AdminPedidoController::class, 'asignarRepartidor'])
-            ->whereNumber('pedido')->name('pedidos.asignar-repartidor');
-        Route::match(['post','put'], '/pedidos/{pedido}/actualizar-estado', [AdminPedidoController::class, 'actualizarEstado'])
-            ->whereNumber('pedido')->name('pedidos.actualizar-estado');
 
         // Reportes y gestión
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
         Route::resource('/repartidores', RepartidorAdminController::class)->names('repartidores');
-
-        // ✅ Zonas de entrega (corregido y funcional)
         Route::resource('/zonas-entrega', DeliveryZoneController::class)
             ->parameters(['zonas-entrega' => 'deliveryZone'])
             ->names('delivery-zones');
 
         // Vendedores
-        Route::get('/vendedores', [VendedorAdminController::class, 'index'])->name('vendedores.index');
-        Route::get('/vendedores/crear', [VendedorAdminController::class, 'create'])->name('vendedores.create');
-        Route::post('/vendedores', [VendedorAdminController::class, 'store'])->name('vendedores.store');
-        Route::patch('/vendedores/{vendor}/status', [VendedorAdminController::class, 'toggleStatus'])
-            ->whereNumber('vendor')->name('vendedores.toggle');
-
-        // Extras (opcional)
-        Route::view('/clientes', 'admin.clientes')->name('clientes');
-        Route::view('/facturacion', 'admin.facturacion')->name('facturacion');
-        Route::view('/carritos', 'admin.carritos')->name('carritos');
-        Route::view('/cupones', 'admin.cupones')->name('cupones');
+        Route::resource('/vendedores', VendedorAdminController::class)->names('vendedores');
     });
 
 /*
@@ -188,38 +169,23 @@ Route::middleware(['auth', 'role:vendedor', 'vendor.active'])
         Route::redirect('/', '/vendedor/dashboard');
         Route::get('/dashboard', [PanelVendedorController::class, 'index'])->name('dashboard');
 
-        // Productos del vendedor
-        Route::get('/productos', [VendedorProductoController::class, 'index'])->name('productos.index');
-        Route::get('/productos/crear', [VendedorProductoController::class, 'create'])->name('productos.create');
-        Route::post('/productos', [VendedorProductoController::class, 'store'])->name('productos.store');
-        Route::get('/productos/{producto}/editar', [VendedorProductoController::class, 'edit'])->whereNumber('producto')->name('productos.edit');
-        Route::put('/productos/{producto}', [VendedorProductoController::class, 'update'])->whereNumber('producto')->name('productos.update');
-        Route::delete('/productos/{producto}', [VendedorProductoController::class, 'destroy'])->whereNumber('producto')->name('productos.destroy');
+        // Productos
+        Route::resource('/productos', VendedorProductoController::class)->names('productos');
 
-        // Pedidos del vendedor
+        // Pedidos
         Route::get('/pedidos', [VendedorPedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido}', [VendedorPedidoController::class, 'show'])->whereNumber('pedido')->name('pedidos.show');
 
-        // PDF
-        Route::get('/pedidos/{pedido}/factura.pdf', [VendedorPedidoController::class, 'facturaPdf'])
-            ->whereNumber('pedido')->name('pedidos.factura.pdf');
-        Route::get('/pedidos/{pedido}/comprobante.pdf', [VendedorPedidoController::class, 'comprobantePdf'])
-            ->whereNumber('pedido')->name('pedidos.comprobante.pdf');
-
-        // PedidoItem (acciones)
+        // Items de pedido
         Route::post('/pedidoitems/{pedidoItem}/estado', [PedidoItemController::class, 'updateStatus'])
             ->whereNumber('pedidoItem')->name('pedidoitems.estado');
-        Route::post('/pedidoitems/{pedido}/actualizar-todos', [PedidoItemController::class, 'updateAllStatus'])
-            ->whereNumber('pedido')->name('pedidoitems.actualizar.todos');
 
-        Route::post('/pedidos/{pedido}/logistica', [PedidoItemController::class, 'assignDelivery'])
-            ->whereNumber('pedido')->name('pedidos.logistica');
+        // Perfil del vendedor
+        Route::get('/perfil', [VendedorPerfilController::class, 'index'])->name('perfil');
 
-        // Compatibilidad con endpoints antiguos
-        Route::post('/items/{item}/aceptar', [VendedorPedidoController::class, 'aceptarItem'])->whereNumber('item')->name('items.aceptar');
-        Route::post('/items/{item}/rechazar', [VendedorPedidoController::class, 'rechazarItem'])->whereNumber('item')->name('items.rechazar');
-        Route::post('/items/{item}/estado', [VendedorPedidoController::class, 'actualizarEstado'])->whereNumber('item')->name('items.estado');
-        Route::get('/items/{item}/estado', [ItemController::class, 'estado'])->whereNumber('item')->name('items.estado.view');
+        // ✅ Reseñas de productos
+        Route::get('/reseñas', [ReseñaController::class, 'index'])->name('reseñas.index');
+        Route::post('/reseñas/{reseña}/responder', [ReseñaController::class, 'responder'])->name('reseñas.responder');
     });
 
 /*
