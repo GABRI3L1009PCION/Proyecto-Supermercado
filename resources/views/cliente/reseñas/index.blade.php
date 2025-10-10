@@ -1,26 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-    <style>
-        .review-product-thumb {
-            max-width: 120px;
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(229, 231, 235, 1);
-        }
-
-        .review-photo-thumb {
-            width: 96px;
-            height: 96px;
-            object-fit: cover;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(229, 231, 235, 1);
-            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
-        }
-    </style>
-
     <div class="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             <i class="fas fa-star text-yellow-400"></i>
@@ -36,12 +16,6 @@
         @if (session('warning'))
             <div class="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800">
                 {{ session('warning') }}
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-                <strong>Ups.</strong> Revisa la información marcada en rojo y vuelve a intentarlo.
             </div>
         @endif
 
@@ -71,22 +45,16 @@
                                 <div class="flex-shrink-0">
                                     <img src="{{ asset('storage/' . ($item->producto->imagen ?? 'default.png')) }}"
                                          alt="{{ $item->producto->nombre }}"
-                                         class="review-product-thumb">
+                                         class="w-28 h-28 object-cover rounded-xl border border-gray-200">
                                 </div>
                                 <div class="flex-1 space-y-4">
                                     <div>
                                         <h3 class="text-lg font-semibold text-gray-800">{{ $item->producto->nombre }}</h3>
-                                        <p class="text-sm text-gray-500">
-                                            Pedido #{{ $item->pedido->codigo ?? $item->pedido_id }} • Entregado el {{ optional($item->updated_at)->format('d/m/Y') }}
-                                        </p>
+                                        <p class="text-sm text-gray-500">Pedido #{{ $item->pedido->codigo ?? $item->pedido_id }} • Entregado el {{ optional($item->updated_at)->format('d/m/Y') }}</p>
                                     </div>
 
-                                    <form action="{{ route('cliente.reseñas.store', $item) }}"
-                                          method="POST"
-                                          enctype="multipart/form-data"
-                                          class="space-y-4">
+                                    <form action="{{ route('cliente.reseñas.store', $item) }}" method="POST" class="space-y-4">
                                         @csrf
-                                        <input type="hidden" name="item_id" value="{{ $item->id }}">
 
                                         <div class="flex items-center gap-4">
                                             <label class="text-sm font-medium text-gray-700">Calificación</label>
@@ -103,16 +71,6 @@
                                             <textarea id="comentario-{{ $item->id }}" name="comentario" rows="3"
                                                       class="mt-1 w-full rounded-lg border-gray-300 focus:border-amber-400 focus:ring-amber-200 text-sm"
                                                       placeholder="Cuéntanos tu experiencia con el producto"></textarea>
-                                        </div>
-
-                                        <div>
-                                            <label for="foto-{{ $item->id }}" class="text-sm font-medium text-gray-700">Foto del producto (opcional)</label>
-                                            <input id="foto-{{ $item->id }}" name="foto" type="file" accept="image/*"
-                                                   class="mt-1 block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-amber-50 file:text-amber-600 hover:file:bg-amber-100">
-                                            <p class="mt-1 text-xs text-gray-400">Formatos JPG o PNG, tamaño máximo 2 MB.</p>
-                                            @if ($errors->has('foto') && (int) old('item_id') === $item->id)
-                                                <p class="mt-1 text-xs text-red-500">{{ $errors->first('foto') }}</p>
-                                            @endif
                                         </div>
 
                                         <div class="flex justify-end">
@@ -160,13 +118,6 @@
                                     </div>
                                     @if ($reseña->comentario)
                                         <p class="mt-3 text-gray-600 leading-relaxed">{{ $reseña->comentario }}</p>
-                                    @endif
-                                    @if ($reseña->imagenes && $reseña->imagenes->isNotEmpty())
-                                        <div class="mt-4 flex flex-wrap gap-3">
-                                            @foreach ($reseña->imagenes as $imagen)
-                                                <img src="{{ asset('storage/' . $imagen->ruta) }}" alt="Foto del producto reseñado" class="review-photo-thumb">
-                                            @endforeach
-                                        </div>
                                     @endif
                                 </div>
                                 @if ($reseña->respuesta_vendedor)
