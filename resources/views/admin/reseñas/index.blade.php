@@ -46,6 +46,7 @@
             table{width:100%;border-collapse:collapse;font-size:14px}
             table th,table td{padding:12px 16px;text-align:left;border-bottom:1px solid #e5e7eb}
             table thead th{background:#f9fafb;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+            table tbody tr{animation:fadeInUp .45s ease both;animation-delay:calc(.04s*var(--row-index,0));}
             .rating-stars{display:flex;align-items:center;gap:4px;color:#f59e0b}
             .rating-stars i{font-size:14px}
             .badge-super{display:inline-block;padding:4px 8px;border-radius:999px;background:#e0f2fe;color:#1d4ed8;font-size:11px;font-weight:700;text-transform:uppercase}
@@ -55,6 +56,11 @@
             .sidebar-toggle{display:none;align-self:flex-start;background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 12px;cursor:pointer;font-weight:600;margin-bottom:10px}
             .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:1000;}
             .overlay.show{display:block}
+            .admin-review-gallery{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+            .admin-review-gallery a{display:block;width:70px;height:70px;overflow:hidden;border-radius:10px;border:1px solid #e5e7eb;box-shadow:0 6px 15px rgba(15,23,42,.08);transition:transform .25s ease,box-shadow .25s ease}
+            .admin-review-gallery img{width:100%;height:100%;object-fit:cover}
+            .admin-review-gallery a:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 12px 24px rgba(15,23,42,.12)}
+            @keyframes fadeInUp{0%{opacity:0;transform:translateY(12px);}100%{opacity:1;transform:translateY(0);}}
             @media(max-width:992px){
                 .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);height:100dvh;width:260px;}
                 .sidebar.open{transform:translateX(0)}
@@ -65,6 +71,8 @@
                 .metric-grid{grid-template-columns:repeat(1,minmax(0,1fr))}
                 table th,table td{padding:10px 12px}
                 .card-body{padding:16px}
+                .admin-review-gallery{gap:6px}
+                .admin-review-gallery a{width:60px;height:60px}
             }
         </style>
 
@@ -148,7 +156,7 @@
                             </thead>
                             <tbody>
                             @forelse ($reseñas as $reseña)
-                                <tr>
+                                <tr style="--row-index: {{ $loop->index }};">
                                     <td>
                                         <div style="font-weight:700;color:#1f2937;">{{ $reseña->producto->nombre ?? 'Producto eliminado' }}</div>
                                         <div style="font-size:12px;color:#6b7280;margin-top:4px;">Pedido {{ $reseña->pedido?->codigo ?? ($reseña->pedido_id ? '#'.$reseña->pedido_id : '—') }}</div>
@@ -175,6 +183,15 @@
                                     </td>
                                     <td>
                                         <div style="color:#4b5563;line-height:1.5;">{{ $reseña->comentario ?: '—' }}</div>
+                                        @if ($reseña->imagenes->isNotEmpty())
+                                            <div class="admin-review-gallery" role="list">
+                                                @foreach ($reseña->imagenes as $imagen)
+                                                    <a href="{{ asset('storage/' . $imagen->ruta) }}" target="_blank" rel="noopener" role="listitem">
+                                                        <img src="{{ asset('storage/' . $imagen->ruta) }}" alt="Foto de reseña del producto {{ $reseña->producto->nombre ?? '' }}">
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                         @if ($reseña->respuesta_vendedor)
                                             <div style="margin-top:8px;font-size:12px;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px;">
                                                 <strong>Respuesta:</strong> {{ $reseña->respuesta_vendedor }}
