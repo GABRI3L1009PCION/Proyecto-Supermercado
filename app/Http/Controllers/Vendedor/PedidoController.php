@@ -167,6 +167,7 @@ class PedidoController extends Controller
             'deliveryLabels'      => PedidoItem::deliveryModeLabels(),
             'deliveryInconsistent'=> $deliveryInconsistent,
             'repartidores'        => $repartidores,
+            'estadoLabels'        => $this->statusLabels(),
         ]);
     }
 

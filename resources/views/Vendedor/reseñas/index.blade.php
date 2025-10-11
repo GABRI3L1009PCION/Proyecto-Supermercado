@@ -3,6 +3,12 @@
 @section('title', 'Reseñas de tus productos | Panel del Vendedor')
 
 @section('content')
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          integrity="sha512-pY1dQ1hNUZo+sIAZ67/lbbC0xLqzM0dJkTLhALRz0BGmqeuVJQw+/7wjSc8CWfiwZBSkNjBa57a70e6m1dc+4g=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer" />
+
     <style>
         :root {
             --vino: #5a0a2e;
@@ -69,8 +75,47 @@
         }
 
         .average-score { font-size: 3rem; font-weight: bold; }
-        .average-stars i { color: var(--estrella); font-size: 1.3rem; margin-right: 2px; }
+        .average-stars {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
         .average-info { text-align: right; line-height: 1.4; }
+
+        .star-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.18rem;
+        }
+
+        .star-rating__icon {
+            inline-size: 1.1rem;
+            block-size: 1.1rem;
+            flex-shrink: 0;
+            background-color: var(--estrella);
+            mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M316.6 17.8 369 150.2l140.5 10.2c26.2 1.9 36.9 35.4 16.9 52.9l-107 93.9 32.1 136c6 25.4-21.5 45.4-43.5 32.5L288 404.3l-120 71.4c-22 13.1-49.5-7.1-43.5-32.5l32.1-136-107-93.9c-20-17.5-9.3-51 16.9-52.9l140.5-10.2L259.4 17.8c9.7-24.6 47.5-24.6 57.2 0z"/></svg>');
+            -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M316.6 17.8 369 150.2l140.5 10.2c26.2 1.9 36.9 35.4 16.9 52.9l-107 93.9 32.1 136c6 25.4-21.5 45.4-43.5 32.5L288 404.3l-120 71.4c-22 13.1-49.5-7.1-43.5-32.5l32.1-136-107-93.9c-20-17.5-9.3-51 16.9-52.9l140.5-10.2L259.4 17.8c9.7-24.6 47.5-24.6 57.2 0z"/></svg>');
+        }
+
+        .star-rating__icon--half {
+            background: linear-gradient(90deg, var(--estrella) 50%, rgba(209, 107, 165, 0.28) 50%);
+        }
+
+        .star-rating__icon--empty {
+            background-color: rgba(209, 107, 165, 0.28);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
 
         .insights-grid {
             display: grid;
@@ -137,114 +182,193 @@
             font-weight: 600;
         }
 
-        .review-card {
-            border-bottom: 1px solid #eee;
-            padding: 1.2rem 0;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            animation: slideUp .45s ease both;
-            animation-delay: calc(.05s * var(--delay, 0));
-            z-index: 0;
-        }
-        .review-card:last-child { border-bottom: none; }
-        .review-card::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 16px;
-            pointer-events: none;
-            opacity: 0;
-            box-shadow: 0 20px 45px rgba(90, 10, 46, 0.08);
-            transition: opacity .3s ease;
-            z-index: -1;
-        }
-        .review-card:hover::after {
-            opacity: 1;
-        }
-
-        .review-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: .4rem;
-        }
-
-        .review-customer { font-weight: bold; color: var(--vino); }
-        .review-product { font-size: .9rem; color: var(--gris); }
-
-        .review-stars i {
-            color: var(--estrella);
-            font-size: 1rem;
-        }
-
-        .review-text { color: #333; margin-top: .5rem; font-size: .95rem; line-height: 1.5; }
-        .review-date { color: var(--gris); font-size: .8rem; margin-top: .3rem; }
-
         .score-chips {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.6rem;
+            gap: 0.6rem;
+            margin-top: 1rem;
         }
 
-        .score-chip {
-            background: rgba(90, 10, 46, 0.08);
-            color: var(--vino);
-            padding: 0.35rem 0.65rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 600;
+        .reaction-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-        }
-
-        .score-chip i { color: var(--estrella); }
-
-        .reaction-badge {
-            margin-top: 0.6rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            background: linear-gradient(135deg, rgba(209, 107, 165, 0.18), rgba(90, 10, 46, 0.18));
-            color: var(--vino);
-            border: 1px solid rgba(209, 107, 165, 0.35);
+            padding: 0.4rem 0.85rem;
             border-radius: 999px;
-            padding: 0.4rem 0.9rem;
-            font-size: 0.8rem;
+            border: 1px solid rgba(209, 107, 165, 0.24);
+            background: rgba(209, 107, 165, 0.16);
+            color: var(--vino);
+            font-size: 0.78rem;
             font-weight: 600;
         }
 
-        .fit-pill {
-            margin-top: 0.6rem;
+        .review-card {
+            position: relative;
+            border-radius: 18px;
+            border: 1px solid rgba(209, 107, 165, 0.18);
+            padding: 1.75rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,250,253,0.9));
+            box-shadow: 0 18px 35px rgba(90, 10, 46, 0.08);
+            overflow: hidden;
+            animation: slideUp .45s ease both;
+            animation-delay: calc(.05s * var(--delay, 0));
+        }
+        .review-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(209, 107, 165, 0.08), rgba(90, 10, 46, 0.05));
+            opacity: 0;
+            transition: opacity .25s ease;
+            pointer-events: none;
+        }
+        .review-card:hover::before { opacity: 1; }
+
+        .review-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            position: relative;
+        }
+        .review-card__stars {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 1rem;
+            color: var(--vino);
+        }
+        .review-card__score { font-weight: 600; font-size: 0.9rem; color: var(--gris); }
+
+        .review-card__title {
+            margin: 0.35rem 0 0.2rem;
+            font-size: 1.3rem;
+            color: #2b1b2a;
+            font-weight: 700;
+        }
+        .review-card__product {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--gris);
+        }
+
+        .review-card__badge {
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            font-size: 0.8rem;
-            padding: 0.35rem 0.75rem;
+            margin-top: 0.35rem;
+            padding: 0.3rem 0.65rem;
             border-radius: 999px;
-            background: rgba(90, 10, 46, 0.08);
+            background: rgba(209, 107, 165, 0.12);
             color: var(--vino);
+            font-size: 0.78rem;
             font-weight: 600;
         }
 
-        /* 🖼️ Galería de imágenes */
+        .review-card__meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.4rem;
+            text-align: right;
+        }
+        .review-card__customer { font-weight: 600; color: var(--vino); }
+        .review-card__date { font-size: 0.82rem; color: var(--gris); }
+        .review-card__reaction {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(209, 107, 165, 0.12);
+            color: var(--vino);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .review-card__comment {
+            margin-top: 1rem;
+            font-size: 0.98rem;
+            color: #403240;
+            line-height: 1.6;
+        }
+
+        .review-card__comment--muted {
+            color: var(--gris);
+            font-style: italic;
+        }
+
+        .review-card__grid {
+            margin-top: 1.4rem;
+            display: grid;
+            gap: 1.4rem;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        }
+        .review-card__panel {
+            background: rgba(255,255,255,0.9);
+            border-radius: 14px;
+            border: 1px solid rgba(209, 107, 165, 0.14);
+            padding: 1.1rem 1.2rem;
+            backdrop-filter: blur(2px);
+        }
+        .review-card__panel h4 {
+            margin: 0 0 0.85rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gris);
+        }
+        .review-card__list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 0.65rem;
+        }
+        .review-card__list-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            color: #43354a;
+        }
+        .review-card__list-item i { font-size: 0.9rem; margin-top: 2px; }
+        .review-card__list-item--positive i { color: #35b37e; }
+        .review-card__list-item--alert i { color: #d94865; }
+        .review-card__list-item--empty { color: var(--gris); font-style: italic; }
+
+        .review-metrics {
+            margin-top: 1.2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+        .review-metrics span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(90, 10, 46, 0.08);
+            color: var(--vino);
+        }
+
         .review-gallery {
+            margin-top: 1.4rem;
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            margin-top: 10px;
         }
         .review-gallery a {
             display: block;
-            width: 100px;
-            height: 100px;
+            width: 96px;
+            height: 96px;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.12);
             transition: transform .25s ease, box-shadow .25s ease;
         }
         .review-gallery img {
@@ -254,31 +378,40 @@
         }
         .review-gallery a:hover {
             transform: translateY(-4px) scale(1.03);
-            box-shadow: 0 16px 32px rgba(0,0,0,0.16);
+            box-shadow: 0 18px 35px rgba(0,0,0,0.18);
         }
 
-        /* 💬 Respuesta del vendedor */
+        .review-card__footer {
+            margin-top: 1.4rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            font-size: 0.82rem;
+            color: var(--gris);
+        }
+
         .reply-box {
-            margin-top: 1rem;
-            padding: 0.8rem 1rem;
+            margin-top: 1.2rem;
+            padding: 0.9rem 1.1rem;
             border-left: 4px solid var(--rosa);
             background: #faf4f7;
-            border-radius: 8px;
+            border-radius: 12px;
         }
         .reply-box strong { color: var(--vino); }
 
         .reply-form {
-            margin-top: 1rem;
+            margin-top: 1.2rem;
             display: flex;
             flex-direction: column;
-            gap: 0.6rem;
+            gap: 0.75rem;
         }
         .reply-form textarea {
             width: 100%;
-            min-height: 70px;
+            min-height: 80px;
             border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 0.6rem;
+            border-radius: 10px;
+            padding: 0.7rem 0.8rem;
             font-size: .9rem;
             resize: vertical;
         }
@@ -287,8 +420,8 @@
             background: var(--vino);
             color: #fff;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
+            padding: 0.55rem 1.1rem;
+            border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
@@ -356,10 +489,22 @@
         <div class="average-box">
             <div class="average-score">{{ number_format($promedio ?? 0, 1) }}</div>
             <div class="average-info">
-                <div class="average-stars">
-                    @for($i = 1; $i <= 5; $i++)
-                        @php $valor = $promedio ?? 0; @endphp
-                        <i class="{{ $i <= floor($valor) ? 'fas fa-star' : ($i - $valor < 1 && $valor > 0 ? 'fas fa-star-half-alt' : 'far fa-star') }}"></i>
+                <span class="sr-only">Promedio general {{ number_format($promedio ?? 0, 1) }} de 5 estrellas</span>
+                @php
+                    $valorPromedio = round(($promedio ?? 0) * 2) / 2;
+                    $estrellasLlenasProm = (int) floor($valorPromedio);
+                    $tieneMediaProm = ($valorPromedio - $estrellasLlenasProm) === 0.5;
+                    $estrellasVaciasProm = 5 - $estrellasLlenasProm - ($tieneMediaProm ? 1 : 0);
+                @endphp
+                <div class="average-stars star-rating" aria-hidden="true">
+                    @for($i = 0; $i < $estrellasLlenasProm; $i++)
+                        <span class="star-rating__icon"></span>
+                    @endfor
+                    @if($tieneMediaProm)
+                        <span class="star-rating__icon star-rating__icon--half"></span>
+                    @endif
+                    @for($i = 0; $i < $estrellasVaciasProm; $i++)
+                        <span class="star-rating__icon star-rating__icon--empty"></span>
                     @endfor
                 </div>
                 <span>Basado en {{ $totalReseñas ?? 0 }} reseñas verificadas</span>
@@ -432,57 +577,143 @@
             <p class="empty-state">Aún no tienes reseñas.</p>
         @else
             @foreach($reseñas as $r)
-                <div class="review-card" style="--delay: {{ $loop->index }};">
-                    <div class="review-header">
+                @php
+                    $agrupados = $r->aspectos_agrupados;
+                    $positivos = collect($agrupados['positivos'] ?? []);
+                    $alertas = collect($agrupados['alertas'] ?? []);
+                    $otros = collect($agrupados['otros'] ?? []);
+                    $hasScores = $r->uso_score || $r->comodidad_score || $r->duracion_score;
+                @endphp
+                <article class="review-card" style="--delay: {{ $loop->index }};">
+                    <header class="review-card__header">
                         <div>
-                            <div class="review-customer">
-                                <i class="fas fa-user-circle"></i> {{ $r->cliente->name ?? 'Cliente desconocido' }}
+                            <div class="review-card__stars">
+                                <span class="sr-only">Calificación del cliente: {{ $r->estrellas }} de 5</span>
+                                @php
+                                    $valorCliente = round(($r->estrellas ?? 0) * 2) / 2;
+                                    $estrellasLlenas = (int) floor($valorCliente);
+                                    $tieneMedia = ($valorCliente - $estrellasLlenas) === 0.5;
+                                    $estrellasVacias = 5 - $estrellasLlenas - ($tieneMedia ? 1 : 0);
+                                @endphp
+                                <div class="star-rating" aria-hidden="true">
+                                    @for($i = 0; $i < $estrellasLlenas; $i++)
+                                        <span class="star-rating__icon"></span>
+                                    @endfor
+                                    @if($tieneMedia)
+                                        <span class="star-rating__icon star-rating__icon--half"></span>
+                                    @endif
+                                    @for($i = 0; $i < $estrellasVacias; $i++)
+                                        <span class="star-rating__icon star-rating__icon--empty"></span>
+                                    @endfor
+                                </div>
+                                <span class="review-card__score">{{ $r->estrellas }}/5</span>
                             </div>
-                            <div class="review-product">
-                                Producto: {{ $r->producto->nombre ?? 'Producto eliminado' }}
-                            </div>
-                            <div class="review-product">
-                                Pedido: {{ $r->pedido?->codigo ?? ($r->pedido_id ? '#'.$r->pedido_id : '—') }}
-                            </div>
+                            <h3 class="review-card__title">{{ $r->resumen_titular }}</h3>
+                            <p class="review-card__product">
+                                {{ $r->producto->nombre ?? 'Producto eliminado' }}
+                            </p>
+                            @if($r->categoria_contexto_label)
+                                <span class="review-card__badge"><i class="fas fa-tag"></i> {{ $r->categoria_contexto_label }}</span>
+                            @endif
                         </div>
-                        <div class="review-stars">
-                            @for($i = 1; $i <= 5; $i++)
-                                <i class="{{ $i <= $r->estrellas ? 'fas fa-star' : 'far fa-star' }}"></i>
-                            @endfor
+                        <div class="review-card__meta">
+                            <span class="review-card__customer"><i class="fas fa-user-circle"></i> {{ $r->cliente->name ?? 'Cliente desconocido' }}</span>
+                            <span class="review-card__date">{{ $r->created_at ? $r->created_at->format('d M, Y') : 'Fecha desconocida' }}</span>
+                            @if($r->reaccion_label)
+                                <span class="review-card__reaction"><i class="fas fa-heart"></i> {{ $r->reaccion_label }}</span>
+                            @endif
+                        </div>
+                    </header>
+
+                    @if(filled($r->comentario))
+                        <p class="review-card__comment">{!! nl2br(e($r->comentario)) !!}</p>
+                    @else
+                        <p class="review-card__comment review-card__comment--muted">El cliente no dejó comentarios adicionales.</p>
+                    @endif
+
+                    <div class="review-card__grid">
+                        <div class="review-card__panel">
+                            <h4>Detalles según clientes</h4>
+                            <ul class="review-card__list">
+                                @php
+                                    $tieneAspectos = $positivos->isNotEmpty() || $alertas->isNotEmpty() || $otros->isNotEmpty();
+                                @endphp
+                                @if($tieneAspectos)
+                                    @foreach($positivos as $item)
+                                        <li class="review-card__list-item review-card__list-item--positive">
+                                            <i class="fas {{ $item['icon'] ?? 'fa-check-circle' }}"></i>
+                                            <span>{{ $item['label'] }}</span>
+                                        </li>
+                                    @endforeach
+                                    @foreach($alertas as $item)
+                                        <li class="review-card__list-item review-card__list-item--alert">
+                                            <i class="fas {{ $item['icon'] ?? 'fa-circle-exclamation' }}"></i>
+                                            <span>{{ $item['label'] }}</span>
+                                        </li>
+                                    @endforeach
+                                    @foreach($otros as $item)
+                                        <li class="review-card__list-item">
+                                            <i class="fas {{ $item['icon'] ?? 'fa-circle' }}"></i>
+                                            <span>{{ $item['label'] }}</span>
+                                        </li>
+                                    @endforeach
+                                @else
+                                    <li class="review-card__list-item review-card__list-item--empty">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>Sin aspectos destacados por el cliente.</span>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
+                        <div class="review-card__panel">
+                            <h4>Experiencia de compra</h4>
+                            <ul class="review-card__list">
+                                <li class="review-card__list-item">
+                                    <i class="fas fa-receipt"></i>
+                                    <span>Pedido {{ $r->pedido?->codigo ?? ($r->pedido_id ? '#'.$r->pedido_id : '—') }}</span>
+                                </li>
+                                @if($r->tiempo_uso_label)
+                                    <li class="review-card__list-item">
+                                        <i class="fas fa-clock"></i>
+                                        <span>{{ $r->tiempo_uso_label }}</span>
+                                    </li>
+                                @endif
+                                @if($r->talla_percebida_label)
+                                    <li class="review-card__list-item">
+                                        <i class="fas fa-ruler-horizontal"></i>
+                                        <span>{{ $r->talla_percebida_label }}</span>
+                                    </li>
+                                @endif
+                                @if($r->categoria_contexto_label)
+                                    <li class="review-card__list-item">
+                                        <i class="fas fa-tag"></i>
+                                        <span>{{ $r->categoria_contexto_label }}</span>
+                                    </li>
+                                @endif
+                                @if($r->tiempo_uso_label || $r->talla_percebida_label)
+                                    <li class="review-card__list-item">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>Compra verificada el {{ $r->created_at ? $r->created_at->format('d M, Y') : '—' }}</span>
+                                    </li>
+                                @endif
+                            </ul>
                         </div>
                     </div>
 
-                    <p class="review-text">{{ $r->comentario ?: 'El cliente no dejó comentarios adicionales.' }}</p>
-
-                    @php
-                        $hasScores = $r->uso_score || $r->comodidad_score || $r->duracion_score;
-                    @endphp
-
                     @if($hasScores)
-                        <div class="score-chips">
+                        <div class="review-metrics">
                             @if($r->uso_score)
-                                <span class="score-chip"><i class="fas fa-sun"></i> Uso {{ $r->uso_score }}/5</span>
+                                <span><i class="fas fa-sun"></i> Uso {{ $r->uso_score }}/5</span>
                             @endif
                             @if($r->comodidad_score)
-                                <span class="score-chip"><i class="fas fa-feather"></i> Comodidad {{ $r->comodidad_score }}/5</span>
+                                <span><i class="fas fa-feather"></i> Comodidad {{ $r->comodidad_score }}/5</span>
                             @endif
                             @if($r->duracion_score)
-                                <span class="score-chip"><i class="fas fa-hourglass-half"></i> Duración {{ $r->duracion_score }}/5</span>
+                                <span><i class="fas fa-hourglass-half"></i> Duración {{ $r->duracion_score }}/5</span>
                             @endif
                         </div>
                     @endif
 
-                    @if($r->talla_percebida_label)
-                        <div class="fit-pill"><i class="fas fa-ruler-horizontal"></i> {{ $r->talla_percebida_label }}</div>
-                    @endif
-
-                    @if($r->reaccion_label)
-                        <button type="button" class="reaction-badge" aria-label="Reacción del cliente">
-                            <i class="fas fa-heart"></i> {{ $r->reaccion_label }}
-                        </button>
-                    @endif
-
-                    {{-- 🖼️ Galería --}}
                     @if(isset($r->imagenes) && $r->imagenes->count() > 0)
                         <div class="review-gallery" role="list">
                             @foreach($r->imagenes as $img)
@@ -493,12 +724,11 @@
                         </div>
                     @endif
 
-                    <div class="review-date">
-                        <i class="fas fa-check-circle"></i> Compra verificada ·
-                        {{ $r->created_at ? $r->created_at->format('d M, Y') : 'Fecha desconocida' }}
+                    <div class="review-card__footer">
+                        <span><i class="fas fa-store"></i> {{ config('app.name', 'Supermercado Atlantia') }}</span>
+                        <span><i class="fas fa-shield-check"></i> Compra verificada</span>
                     </div>
 
-                    {{-- 💬 Respuesta del vendedor --}}
                     @if($r->respuesta_vendedor)
                         <div class="reply-box">
                             <strong>Tu respuesta:</strong> {{ $r->respuesta_vendedor }}
@@ -510,7 +740,7 @@
                             <button type="submit"><i class="fas fa-paper-plane"></i> Responder</button>
                         </form>
                     @endif
-                </div>
+                </article>
             @endforeach
         @endif
     </div>

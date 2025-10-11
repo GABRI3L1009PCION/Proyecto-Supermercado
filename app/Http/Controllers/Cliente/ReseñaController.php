@@ -47,8 +47,14 @@ class ReseñaController extends Controller
         abort_unless($pedidoItem->fulfillment_status === PedidoItem::ESTADO_ENTREGADO, 422, 'El producto aún no ha sido entregado.');
 
         $data = $request->validate([
+            'titulo' => ['nullable', 'string', 'max:150'],
             'estrellas' => ['required', 'integer', 'min:1', 'max:5'],
             'comentario' => ['nullable', 'string', 'max:600'],
+            'categoria_contexto' => ['nullable', 'string', 'max:40'],
+            'aspectos' => ['nullable', 'array'],
+            'aspectos.*' => ['string', 'max:60'],
+            'tiempo_uso' => ['nullable', 'string', 'max:40'],
+            'reaccion' => ['nullable', 'string', 'max:50'],
             'fotos' => ['nullable', 'array', 'max:6'],
             'fotos.*' => ['image', 'max:5120'],
         ]);
@@ -59,6 +65,26 @@ class ReseñaController extends Controller
         }
 
         DB::transaction(function () use ($pedidoItem, $cliente, $data, $request) {
+            $categoria = $data['categoria_contexto'] ?? null;
+            if ($categoria && !array_key_exists($categoria, Reseña::CATEGORIAS_CONTEXTUALES)) {
+                $categoria = null;
+            }
+
+            $tiempoUso = $data['tiempo_uso'] ?? null;
+            if ($tiempoUso && !array_key_exists($tiempoUso, Reseña::TIEMPOS_USO)) {
+                $tiempoUso = null;
+            }
+
+            $reaccion = $data['reaccion'] ?? null;
+            if ($reaccion && !array_key_exists($reaccion, Reseña::REACCIONES)) {
+                $reaccion = null;
+            }
+
+            $aspectosSeleccionados = collect($request->input('aspectos', []))
+                ->filter(fn ($valor) => array_key_exists($valor, Reseña::ASPECTOS_CATALOGO))
+                ->values()
+                ->all();
+
             $reseña = Reseña::create([
                 'producto_id' => $pedidoItem->producto_id,
                 'cliente_id' => $cliente->id,
@@ -66,6 +92,11 @@ class ReseñaController extends Controller
                 'pedido_item_id' => $pedidoItem->id,
                 'estrellas' => $data['estrellas'],
                 'comentario' => $data['comentario'] ?? null,
+                'titulo' => $data['titulo'] ?? null,
+                'categoria_contexto' => $categoria,
+                'aspectos' => $aspectosSeleccionados ?: null,
+                'tiempo_uso' => $tiempoUso,
+                'reaccion' => $reaccion,
             ]);
 
             $imagenes = collect($request->file('fotos', []))
