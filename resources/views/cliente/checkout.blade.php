@@ -297,8 +297,13 @@
                     <select name="delivery_zone_id" id="zonaSelect" class="form-select" required data-old="{{ old('delivery_zone_id') }}">
                         <option value="">Selecciona la zona de entrega</option>
                         @foreach ($zonasListado as $zona)
-                            <option value="{{ $zona['id'] }}" data-municipio="{{ $zona['municipio'] }}" @selected(old('delivery_zone_id')==$zona['id'])>
-                                {{ $zona['nombre'] }} ({{ $zona['municipio'] }})
+                            <option
+                                value="{{ $zona['id'] }}"
+                                data-municipio="{{ $zona['municipio'] }}"
+                                data-tarifa="{{ $zona['tarifa_base'] ?? '' }}"
+                                @selected((string) old('delivery_zone_id') === (string) $zona['id'])
+                            >
+                                {{ $zona['nombre'] }}{{ $zona['municipio'] ? ' (' . $zona['municipio'] . ')' : '' }}
                             </option>
                         @endforeach
                     </select>
@@ -385,7 +390,7 @@
                         <span>Total a pagar</span>
                         <span id="summaryTotal">Q{{ number_format($subtotalVista, 2) }}</span>
                     </div>
-                    <p class="summary-note" id="shippingNote">Selecciona tu colonia para calcular la tarifa de entrega.</p>
+                    <p class="summary-note" id="shippingNote">Selecciona tu zona de entrega para calcular la tarifa.</p>
                     <input type="hidden" name="costo_envio" id="costo_envio" value="{{ old('costo_envio', '0') }}">
                 </div>
 
@@ -495,6 +500,40 @@
     function mostrarModalCarrito(){ abrirModal('modalCarrito'); }
     const municipioSelect = document.getElementById('municipioSelect');
     const zonaSelect = document.getElementById('zonaSelect');
+    const zonaInitialValue = zonaSelect ? (zonaSelect.dataset.old || zonaSelect.value || '') : '';
+    if(zonaSelect){
+        zonaSelect.dataset.old = zonaInitialValue;
+    }
+
+    function poblarZonasPorMunicipio(municipio){
+        if(!zonaSelect){ return; }
+        const previous = zonaSelect.dataset.old || zonaSelect.value;
+        let valueStillAvailable = false;
+        Array.from(zonaSelect.options).forEach(option=>{
+            if(!option.value){
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+            const optionMunicipio = option.dataset.municipio || '';
+            const matches = !municipio || optionMunicipio === municipio;
+            option.hidden = !matches;
+            option.disabled = !matches;
+            if(matches && previous && String(previous) === option.value){
+                option.selected = true;
+                valueStillAvailable = true;
+            }
+            if(!matches && option.selected){
+                option.selected = false;
+            }
+        });
+
+        if(!valueStillAvailable){
+            zonaSelect.value = '';
+        }
+
+        zonaSelect.dataset.old = '';
+    }
 
     function mostrarModalEntrega(){
         const d=document.querySelector('input[name="direccion"]').value.trim();
@@ -561,23 +600,14 @@
         }
     }
 
-    if(coloniaSelect){
-        coloniaSelect.addEventListener('change',()=>{
-            centrarEnColonia(coloniaSelect.value);
-            actualizarResumenEnvio();
-        });
-        if(coloniaSelect.value){
-            centrarEnColonia(coloniaSelect.value);
-            actualizarResumenEnvio();
-        }
-    }
-
     if(municipioSelect){
         municipioSelect.addEventListener('change',()=>{
-            poblarZonasPorMunicipio(municipioSelect.value);
             if(zonaSelect){
                 zonaSelect.dataset.old='';
-                zonaSelect.value='';
+            }
+            poblarZonasPorMunicipio(municipioSelect.value);
+            if(zonaSelect && zonaSelect.value){
+                centrarEnZona(zonaSelect.value);
             }
             actualizarResumenEnvio();
         });
@@ -594,7 +624,6 @@
     if(zonaSelect && zonaSelect.value){
         centrarEnZona(zonaSelect.value);
     }
-    if(zonaSelect){ zonaSelect.dataset.old=''; }
 
     mapa.on('click',function(e){
         colocarMarcador(e.latlng, mapa.getZoom());
@@ -624,10 +653,10 @@
         tarjeta:'Pago con tarjeta mediante un proceso seguro. Tras confirmar, recibirás un enlace o checkout para completar el pago.',
         transferencia:'Realiza una transferencia o depósito y conserva tu comprobante. Procesaremos tu pedido al confirmar el pago.'
     };
-    function obtenerTarifaEnvio(colonia){
-        if(!colonia){ return 0; }
+    function obtenerTarifaEnvioZona(zonaId){
+        if(!zonaId){ return 0; }
         if(!tarifasEnvio){ return tarifaEnvioDefault; }
-        const fee=tarifasEnvio[colonia];
+        const fee = tarifasEnvio[zonaId] ?? tarifasEnvio[String(zonaId)];
         if(fee===undefined||fee===null||fee===''){ return tarifaEnvioDefault; }
         const parsed=parseFloat(fee);
         return Number.isFinite(parsed)?parsed:tarifaEnvioDefault;
@@ -637,14 +666,14 @@
         return 'Q'+numero.toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2});
     }
     function actualizarResumenEnvio(){
-        const colonia=coloniaSelect?coloniaSelect.value:'';
-        const tieneColonia=colonia && colonia.trim()!=='';
-        const envio=tieneColonia?obtenerTarifaEnvio(colonia):0;
+        const zonaId=zonaSelect?zonaSelect.value:'';
+        const tieneZona=zonaId && zonaId.trim()!=='';
+        const envio=tieneZona?obtenerTarifaEnvioZona(zonaId):0;
         if(summarySubtotal) summarySubtotal.textContent=formatearMoneda(subtotalCarrito);
         if(summaryEnvio) summaryEnvio.textContent=formatearMoneda(envio);
         if(summaryTotal) summaryTotal.textContent=formatearMoneda(subtotalCarrito+envio);
         if(envioInput) envioInput.value=Number(envio||0).toFixed(2);
-        if(shippingNote) shippingNote.style.display=tieneColonia?'none':'block';
+        if(shippingNote) shippingNote.style.display=tieneZona?'none':'block';
     }
     function updatePayUI(){
         document.querySelectorAll('.pay-option').forEach(card=>{

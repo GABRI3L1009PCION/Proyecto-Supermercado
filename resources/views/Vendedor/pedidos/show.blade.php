@@ -78,6 +78,23 @@
     $deliveryInconsistent = $deliveryInconsistent ?? false;
     $facturacion = $facturacion ?? ['requiere'=>false,'nit'=>'CF','nombre'=>null,'direccion'=>null,'telefono'=>null];
     $repartidores = $repartidores ?? collect();
+    $estadoLabels = $estadoLabels ?? [];
+    $estadoBadgeMap = [
+        'pendiente' => 'badge-pendiente',
+        'pending' => 'badge-pendiente',
+        'accepted' => 'badge-aceptado',
+        'aceptado' => 'badge-aceptado',
+        'preparing' => 'badge-preparando',
+        'preparando' => 'badge-preparando',
+        'ready' => 'badge-listo',
+        'listo' => 'badge-listo',
+        'delivered' => 'badge-entregado',
+        'entregado' => 'badge-entregado',
+        'rejected' => 'badge-rechazado',
+        'rechazado' => 'badge-rechazado',
+        'canceled' => 'badge-rechazado',
+        'cancelado' => 'badge-rechazado',
+    ];
 @endphp
 
 <div class="container">
@@ -86,9 +103,27 @@
         <div class="tools no-print">
             <a href="{{ route('vendedor.pedidos.index') }}" class="btn-outline-vino"><i class="fas fa-list"></i> Ver pedidos</a>
             <a href="{{ route('vendedor.dashboard') }}" class="btn-outline-vino"><i class="fas fa-arrow-left"></i> Volver</a>
+            <a href="{{ route('vendedor.pedidos.comprobante.pdf', $pedido) }}" target="_blank" class="btn-outline-vino"><i class="fas fa-file-pdf"></i> Comprobante</a>
             <a href="{{ route('vendedor.pedidos.factura.pdf', $pedido) }}" target="_blank" class="btn-vino"><i class="fas fa-file-invoice"></i> Factura</a>
         </div>
     </div>
+
+    @if (session('ok'))
+        <div class="alert alert-success">{{ session('ok') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <strong>Revisa la información ingresada:</strong>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     {{-- Información general --}}
     <div class="card">
@@ -201,6 +236,74 @@
                 @endif
             </div>
         </form>
+    </div>
+
+    {{-- Gestión de ítems --}}
+    <div class="card mt-4">
+        <div class="card-header"><h3><i class="fas fa-cubes"></i> Ítems del pedido</h3></div>
+        <div class="acciones-rapidas no-print">
+            <form action="{{ route('vendedor.pedidos.estado', $pedido) }}" method="POST" class="d-flex flex-wrap gap-3 align-items-end">
+                @csrf
+                <div>
+                    <label for="estado_global" class="form-label">Actualizar todos los ítems a</label>
+                    <select name="estado" id="estado_global" class="form-select">
+                        @foreach($estadoLabels as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" class="btn-vino"><i class="fas fa-sync"></i> Aplicar a todos</button>
+            </form>
+        </div>
+
+        <div class="table-responsive mt-3">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-center">Estado actual</th>
+                        <th class="text-center">Actualizar estado</th>
+                        <th class="text-end">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @forelse($pedidoItems as $item)
+                    <tr>
+                        <td>
+                            <strong>{{ $item->producto->nombre ?? 'Producto no disponible' }}</strong>
+                            <br><small>Código: {{ $item->producto->codigo ?? 'N/D' }}</small>
+                        </td>
+                        <td class="text-center">{{ $item->cantidad }}</td>
+                        <td class="text-center">
+                            @php
+                                $itemBadge = $estadoBadgeMap[$item->fulfillment_status] ?? 'badge-pendiente';
+                            @endphp
+                            <span class="badge-estado {{ $itemBadge }}">
+                                {{ $estadoLabels[$item->fulfillment_status] ?? ucfirst($item->fulfillment_status) }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <form action="{{ route('vendedor.pedidoitems.estado', $item) }}" method="POST" class="d-inline-flex gap-2 align-items-center justify-content-center">
+                                @csrf
+                                <select name="estado" class="form-select form-select-sm" style="min-width:160px;">
+                                    @foreach($estadoLabels as $key => $label)
+                                        <option value="{{ $key }}" @selected($item->fulfillment_status === $key)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-vino"><i class="fas fa-save"></i></button>
+                            </form>
+                        </td>
+                        <td class="text-end">Q{{ number_format(($item->cantidad * $item->precio_unitario) + ($item->delivery_fee ?? 0), 2) }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No hay ítems asociados al vendedor en este pedido.</td>
+                    </tr>
+                @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
