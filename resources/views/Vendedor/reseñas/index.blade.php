@@ -69,8 +69,56 @@
         }
 
         .average-score { font-size: 3rem; font-weight: bold; }
-        .average-stars i { color: var(--estrella); font-size: 1.3rem; margin-right: 2px; }
+        .average-stars {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
         .average-info { text-align: right; line-height: 1.4; }
+
+        .star-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.18rem;
+        }
+
+        .star-icon {
+            position: relative;
+            width: 1.15rem;
+            height: 1.15rem;
+            display: inline-block;
+        }
+
+        .star-icon__layer {
+            position: absolute;
+            inset: 0;
+            line-height: 1.15rem;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .star-icon__base {
+            color: rgba(209, 107, 165, 0.25);
+        }
+
+        .star-icon__fill {
+            color: var(--estrella);
+            overflow: hidden;
+            width: var(--fill, 0%);
+            display: block;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
 
         .insights-grid {
             display: grid;
@@ -427,10 +475,17 @@
         <div class="average-box">
             <div class="average-score">{{ number_format($promedio ?? 0, 1) }}</div>
             <div class="average-info">
-                <div class="average-stars">
+                <span class="sr-only">Promedio general {{ number_format($promedio ?? 0, 1) }} de 5 estrellas</span>
+                <div class="average-stars star-rating" aria-hidden="true">
+                    @php $valorPromedio = $promedio ?? 0; @endphp
                     @for($i = 1; $i <= 5; $i++)
-                        @php $valor = $promedio ?? 0; @endphp
-                        <i class="{{ $i <= floor($valor) ? 'fas fa-star' : ($i - $valor < 1 && $valor > 0 ? 'fas fa-star-half-alt' : 'far fa-star') }}"></i>
+                        @php
+                            $fill = max(min(($valorPromedio - ($i - 1)) * 100, 100), 0);
+                        @endphp
+                        <span class="star-icon" style="--fill: {{ $fill }}%;">
+                            <span class="star-icon__layer star-icon__base">★</span>
+                            <span class="star-icon__layer star-icon__fill">★</span>
+                        </span>
                     @endfor
                 </div>
                 <span>Basado en {{ $totalReseñas ?? 0 }} reseñas verificadas</span>
@@ -605,7 +660,7 @@
                                 @endif
                             </ul>
                         </div>
-                    </div>
+                    </header>
 
                     @if($hasScores)
                         <div class="review-metrics">
