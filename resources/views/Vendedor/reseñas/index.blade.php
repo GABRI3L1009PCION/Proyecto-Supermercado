@@ -88,21 +88,30 @@
             gap: 0.18rem;
         }
 
-        .star-rating__icon {
-            inline-size: 1.1rem;
-            block-size: 1.1rem;
-            flex-shrink: 0;
-            background-color: var(--estrella);
-            mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M316.6 17.8 369 150.2l140.5 10.2c26.2 1.9 36.9 35.4 16.9 52.9l-107 93.9 32.1 136c6 25.4-21.5 45.4-43.5 32.5L288 404.3l-120 71.4c-22 13.1-49.5-7.1-43.5-32.5l32.1-136-107-93.9c-20-17.5-9.3-51 16.9-52.9l140.5-10.2L259.4 17.8c9.7-24.6 47.5-24.6 57.2 0z"/></svg>');
-            -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M316.6 17.8 369 150.2l140.5 10.2c26.2 1.9 36.9 35.4 16.9 52.9l-107 93.9 32.1 136c6 25.4-21.5 45.4-43.5 32.5L288 404.3l-120 71.4c-22 13.1-49.5-7.1-43.5-32.5l32.1-136-107-93.9c-20-17.5-9.3-51 16.9-52.9l140.5-10.2L259.4 17.8c9.7-24.6 47.5-24.6 57.2 0z"/></svg>');
+        .star-icon {
+            position: relative;
+            width: 1.15rem;
+            height: 1.15rem;
+            display: inline-block;
         }
 
-        .star-rating__icon--half {
-            background: linear-gradient(90deg, var(--estrella) 50%, rgba(209, 107, 165, 0.28) 50%);
+        .star-icon__layer {
+            position: absolute;
+            inset: 0;
+            line-height: 1.15rem;
+            font-size: 1.1rem;
+            text-align: center;
         }
 
-        .star-rating__icon--empty {
-            background-color: rgba(209, 107, 165, 0.28);
+        .star-icon__base {
+            color: rgba(209, 107, 165, 0.25);
+        }
+
+        .star-icon__fill {
+            color: var(--estrella);
+            overflow: hidden;
+            width: var(--fill, 0%);
+            display: block;
         }
 
         .sr-only {
@@ -235,10 +244,11 @@
         .review-card__stars {
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.45rem;
             font-size: 1rem;
             color: var(--vino);
         }
+        .review-card__stars i { color: var(--estrella); }
         .review-card__score { font-weight: 600; font-size: 0.9rem; color: var(--gris); }
 
         .review-card__title {
@@ -251,19 +261,6 @@
             margin: 0;
             font-size: 0.9rem;
             color: var(--gris);
-        }
-
-        .review-card__badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-top: 0.35rem;
-            padding: 0.3rem 0.65rem;
-            border-radius: 999px;
-            background: rgba(209, 107, 165, 0.12);
-            color: var(--vino);
-            font-size: 0.78rem;
-            font-weight: 600;
         }
 
         .review-card__meta {
@@ -292,11 +289,6 @@
             font-size: 0.98rem;
             color: #403240;
             line-height: 1.6;
-        }
-
-        .review-card__comment--muted {
-            color: var(--gris);
-            font-style: italic;
         }
 
         .review-card__grid {
@@ -490,21 +482,16 @@
             <div class="average-score">{{ number_format($promedio ?? 0, 1) }}</div>
             <div class="average-info">
                 <span class="sr-only">Promedio general {{ number_format($promedio ?? 0, 1) }} de 5 estrellas</span>
-                @php
-                    $valorPromedio = round(($promedio ?? 0) * 2) / 2;
-                    $estrellasLlenasProm = (int) floor($valorPromedio);
-                    $tieneMediaProm = ($valorPromedio - $estrellasLlenasProm) === 0.5;
-                    $estrellasVaciasProm = 5 - $estrellasLlenasProm - ($tieneMediaProm ? 1 : 0);
-                @endphp
                 <div class="average-stars star-rating" aria-hidden="true">
-                    @for($i = 0; $i < $estrellasLlenasProm; $i++)
-                        <span class="star-rating__icon"></span>
-                    @endfor
-                    @if($tieneMediaProm)
-                        <span class="star-rating__icon star-rating__icon--half"></span>
-                    @endif
-                    @for($i = 0; $i < $estrellasVaciasProm; $i++)
-                        <span class="star-rating__icon star-rating__icon--empty"></span>
+                    @php $valorPromedio = $promedio ?? 0; @endphp
+                    @for($i = 1; $i <= 5; $i++)
+                        @php
+                            $fill = max(min(($valorPromedio - ($i - 1)) * 100, 100), 0);
+                        @endphp
+                        <span class="star-icon" style="--fill: {{ $fill }}%;">
+                            <span class="star-icon__layer star-icon__base">★</span>
+                            <span class="star-icon__layer star-icon__fill">★</span>
+                        </span>
                     @endfor
                 </div>
                 <span>Basado en {{ $totalReseñas ?? 0 }} reseñas verificadas</span>
@@ -588,33 +575,18 @@
                     <header class="review-card__header">
                         <div>
                             <div class="review-card__stars">
-                                <span class="sr-only">Calificación del cliente: {{ $r->estrellas }} de 5</span>
-                                @php
-                                    $valorCliente = round(($r->estrellas ?? 0) * 2) / 2;
-                                    $estrellasLlenas = (int) floor($valorCliente);
-                                    $tieneMedia = ($valorCliente - $estrellasLlenas) === 0.5;
-                                    $estrellasVacias = 5 - $estrellasLlenas - ($tieneMedia ? 1 : 0);
-                                @endphp
-                                <div class="star-rating" aria-hidden="true">
-                                    @for($i = 0; $i < $estrellasLlenas; $i++)
-                                        <span class="star-rating__icon"></span>
-                                    @endfor
-                                    @if($tieneMedia)
-                                        <span class="star-rating__icon star-rating__icon--half"></span>
-                                    @endif
-                                    @for($i = 0; $i < $estrellasVacias; $i++)
-                                        <span class="star-rating__icon star-rating__icon--empty"></span>
-                                    @endfor
-                                </div>
+                                @for($i = 1; $i <= 5; $i++)
+                                    <i class="{{ $i <= $r->estrellas ? 'fas fa-star' : 'far fa-star' }}"></i>
+                                @endfor
                                 <span class="review-card__score">{{ $r->estrellas }}/5</span>
                             </div>
                             <h3 class="review-card__title">{{ $r->resumen_titular }}</h3>
                             <p class="review-card__product">
                                 {{ $r->producto->nombre ?? 'Producto eliminado' }}
+                                @if($r->categoria_contexto_label)
+                                    · {{ $r->categoria_contexto_label }}
+                                @endif
                             </p>
-                            @if($r->categoria_contexto_label)
-                                <span class="review-card__badge"><i class="fas fa-tag"></i> {{ $r->categoria_contexto_label }}</span>
-                            @endif
                         </div>
                         <div class="review-card__meta">
                             <span class="review-card__customer"><i class="fas fa-user-circle"></i> {{ $r->cliente->name ?? 'Cliente desconocido' }}</span>
@@ -625,11 +597,7 @@
                         </div>
                     </header>
 
-                    @if(filled($r->comentario))
-                        <p class="review-card__comment">{!! nl2br(e($r->comentario)) !!}</p>
-                    @else
-                        <p class="review-card__comment review-card__comment--muted">El cliente no dejó comentarios adicionales.</p>
-                    @endif
+                    <p class="review-card__comment">{{ $r->comentario ?: 'El cliente no dejó comentarios adicionales.' }}</p>
 
                     <div class="review-card__grid">
                         <div class="review-card__panel">
@@ -698,7 +666,7 @@
                                 @endif
                             </ul>
                         </div>
-                    </div>
+                    </header>
 
                     @if($hasScores)
                         <div class="review-metrics">
