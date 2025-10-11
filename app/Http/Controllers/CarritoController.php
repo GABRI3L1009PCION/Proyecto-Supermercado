@@ -116,7 +116,28 @@ class CarritoController extends Controller
 
         session()->put('carrito', $carrito);
 
-        $colonias = config('geografia.santo_tomas_colonias');
+        $zones = DeliveryZone::activas()
+            ->orderBy('municipio')
+            ->orderBy('nombre')
+            ->get();
+
+        $zonas = $zones->map(function (DeliveryZone $zone) {
+            return [
+                'id'          => (int) $zone->id,
+                'nombre'      => $zone->nombre,
+                'municipio'   => $zone->municipio,
+                'lat'         => $zone->lat,
+                'lng'         => $zone->lng,
+                'tarifa_base' => (float) ($zone->tarifa_base ?? 0),
+            ];
+        })->toArray();
+
+        $municipios = $zones->pluck('municipio')
+            ->filter()
+            ->unique()
+            ->values()
+            ->toArray();
+
         $mapaDefault = config('geografia.santo_tomas_default');
         $tarifaEnvioDefault = (float) (config('geografia.tarifa_envio_default') ?? 0);
 
@@ -126,18 +147,16 @@ class CarritoController extends Controller
             return $carry + ($precio * $cantidad);
         }, 0.0);
 
-        $tarifasEnvio = collect($colonias)
-            ->filter(fn ($colonia) => !empty($colonia['nombre']))
-            ->mapWithKeys(function ($colonia) use ($tarifaEnvioDefault) {
-                $tarifa = $colonia['tarifa'] ?? null;
-                $valor = is_numeric($tarifa) ? (float) $tarifa : $tarifaEnvioDefault;
-                return [$colonia['nombre'] => $valor];
-            })
-            ->toArray();
+        $tarifasEnvio = $zones->mapWithKeys(function (DeliveryZone $zone) use ($tarifaEnvioDefault) {
+            $tarifa = $zone->tarifa_base;
+            $valor = is_numeric($tarifa) ? (float) $tarifa : $tarifaEnvioDefault;
+            return [$zone->id => $valor];
+        })->toArray();
 
         return view('cliente.checkout', [
             'carrito'            => $carrito,
-            'colonias'           => $colonias,
+            'zonas'              => $zonas,
+            'municipios'         => $municipios,
             'mapaDefault'        => $mapaDefault,
             'subtotalCarrito'    => $subtotalCarrito,
             'tarifasEnvio'       => $tarifasEnvio,
@@ -207,7 +226,14 @@ class CarritoController extends Controller
         session()->put('carrito', $carrito);
 
         $descuento = 0;
-        $envioCalculado = $this->calcularCostoEnvio($data['colonia'] ?? null);
+        $zone = $zones->firstWhere('id', (int) $data['delivery_zone_id']);
+        if (!$zone) {
+            return back()
+                ->withErrors(['delivery_zone_id' => 'La zona seleccionada ya no está disponible.'])
+                ->withInput();
+        }
+
+        $envioCalculado = $this->calcularCostoEnvio($zone);
 
         if (array_key_exists('costo_envio', $data) && $data['costo_envio'] !== null) {
             $envioReportado = (float) $data['costo_envio'];
@@ -343,17 +369,16 @@ class CarritoController extends Controller
         return back()->with('success', 'Producto eliminado.');
     }
 
-    protected function calcularCostoEnvio(?string $colonia): float
+    protected function calcularCostoEnvio(?DeliveryZone $zone): float
     {
-        $colonias = collect(config('geografia.santo_tomas_colonias'));
         $tarifaDefault = (float) (config('geografia.tarifa_envio_default') ?? 0);
 
-        if (!$colonia) {
+        if (!$zone) {
             return $tarifaDefault;
         }
 
-        $tarifa = optional($colonias->firstWhere('nombre', $colonia))['tarifa'] ?? null;
+        $tarifa = $zone->tarifa_base;
 
-        return is_numeric($tarifa) ? (float) $tarifa : $tarifaDefault;
+        return is_numeric($tarifa) ? max(0, (float) $tarifa) : $tarifaDefault;
     }
 }
