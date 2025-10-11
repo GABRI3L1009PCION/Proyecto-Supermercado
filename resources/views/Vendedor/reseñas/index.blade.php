@@ -3,6 +3,12 @@
 @section('title', 'Reseñas de tus productos | Panel del Vendedor')
 
 @section('content')
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          integrity="sha512-pY1dQ1hNUZo+sIAZ67/lbbC0xLqzM0dJkTLhALRz0BGmqeuVJQw+/7wjSc8CWfiwZBSkNjBa57a70e6m1dc+4g=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer" />
+
     <style>
         :root {
             --vino: #5a0a2e;
