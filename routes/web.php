@@ -186,10 +186,20 @@ Route::middleware(['auth', 'role:vendedor', 'vendor.active'])
         // Pedidos
         Route::get('/pedidos', [VendedorPedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido}', [VendedorPedidoController::class, 'show'])->whereNumber('pedido')->name('pedidos.show');
+        Route::get('/pedidos/{pedido}/factura', [VendedorPedidoController::class, 'facturaPdf'])
+            ->whereNumber('pedido')
+            ->name('pedidos.factura.pdf');
+        Route::get('/pedidos/{pedido}/comprobante', [VendedorPedidoController::class, 'comprobantePdf'])
+            ->whereNumber('pedido')
+            ->name('pedidos.comprobante.pdf');
 
         // Items de pedido
         Route::post('/pedidoitems/{pedidoItem}/estado', [PedidoItemController::class, 'updateStatus'])
             ->whereNumber('pedidoItem')->name('pedidoitems.estado');
+        Route::post('/pedidos/{pedido}/estado', [PedidoItemController::class, 'updateAllStatus'])
+            ->whereNumber('pedido')->name('pedidos.estado');
+        Route::post('/pedidos/{pedido}/logistica', [PedidoItemController::class, 'assignDelivery'])
+            ->whereNumber('pedido')->name('pedidos.logistica');
 
         // Perfil del vendedor
         Route::get('/perfil', [VendedorPerfilController::class, 'index'])->name('perfil');
