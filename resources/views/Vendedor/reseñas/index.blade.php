@@ -78,40 +78,17 @@
         .average-stars {
             display: flex;
             align-items: center;
-            gap: 0.2rem;
+            gap: 0.25rem;
+            font-size: 1.15rem;
         }
         .average-info { text-align: right; line-height: 1.4; }
 
-        .star-rating {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.18rem;
-        }
-
-        .star-icon {
-            position: relative;
-            width: 1.15rem;
-            height: 1.15rem;
-            display: inline-block;
-        }
-
-        .star-icon__layer {
-            position: absolute;
-            inset: 0;
-            line-height: 1.15rem;
-            font-size: 1.1rem;
-            text-align: center;
-        }
-
-        .star-icon__base {
-            color: rgba(209, 107, 165, 0.25);
-        }
-
-        .star-icon__fill {
+        .average-stars i {
             color: var(--estrella);
-            overflow: hidden;
-            width: var(--fill, 0%);
-            display: block;
+        }
+
+        .average-stars i.far {
+            color: rgba(209, 107, 165, 0.35);
         }
 
         .sr-only {
@@ -482,16 +459,19 @@
             <div class="average-score">{{ number_format($promedio ?? 0, 1) }}</div>
             <div class="average-info">
                 <span class="sr-only">Promedio general {{ number_format($promedio ?? 0, 1) }} de 5 estrellas</span>
-                <div class="average-stars star-rating" aria-hidden="true">
+                <div class="average-stars" aria-hidden="true">
                     @php $valorPromedio = $promedio ?? 0; @endphp
                     @for($i = 1; $i <= 5; $i++)
                         @php
-                            $fill = max(min(($valorPromedio - ($i - 1)) * 100, 100), 0);
+                            $difference = $valorPromedio - ($i - 1);
                         @endphp
-                        <span class="star-icon" style="--fill: {{ $fill }}%;">
-                            <span class="star-icon__layer star-icon__base">★</span>
-                            <span class="star-icon__layer star-icon__fill">★</span>
-                        </span>
+                        @if($difference >= 1)
+                            <i class="fas fa-star"></i>
+                        @elseif($difference >= 0.5)
+                            <i class="fas fa-star-half-alt"></i>
+                        @else
+                            <i class="far fa-star"></i>
+                        @endif
                     @endfor
                 </div>
                 <span>Basado en {{ $totalReseñas ?? 0 }} reseñas verificadas</span>
