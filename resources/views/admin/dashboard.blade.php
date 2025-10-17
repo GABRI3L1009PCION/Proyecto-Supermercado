@@ -152,10 +152,7 @@
                     <a href="{{ route('admin.delivery-zones.index') }}"><i class="fas fa-map-marked-alt"></i> Área de servicio</a>
 
                     {{-- Extras --}}
-                    <a href="{{ route('admin.facturacion') }}"><i class="fas fa-file-invoice-dollar"></i> Facturación</a>
                     <a href="{{ route('admin.reportes.index') }}"><i class="fas fa-file-alt"></i> Reportes</a>
-                    <a href="{{ route('admin.carritos') }}"><i class="fas fa-shopping-cart"></i> Carritos</a>
-                    <a href="{{ route('admin.cupones') }}"><i class="fas fa-percentage"></i> Cupones y promociones</a>
                     <a href="#"><i class="fas fa-cog"></i> Configuración</a>
                 </nav>
             </div>
