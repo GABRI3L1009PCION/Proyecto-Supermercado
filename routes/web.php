@@ -126,12 +126,20 @@ Route::middleware(['auth', 'role:empleado'])->group(function () {
 Route::middleware(['auth', 'role:repartidor'])
     ->prefix('repartidor')->as('repartidor.')
     ->group(function () {
-        Route::get('/panel', [PedidoRepartidorController::class, 'index'])->name('panel');
+        Route::get('/panel', [RepartidorController::class, 'index'])->name('panel');
+
+        Route::get('/pedidos/asignados', [RepartidorController::class, 'pedidosAsignados'])->name('pedidos.asignados');
+        Route::get('/pedidos/entregados', [RepartidorController::class, 'pedidosEntregados'])->name('pedidos.entregados');
+        Route::get('/pedidos/{pedido}/rastreo', [RepartidorController::class, 'rastreo'])->whereNumber('pedido')->name('pedidos.rastreo');
+
+        Route::post('/pedidos/{pedido}/aceptar', [RepartidorController::class, 'aceptar'])->whereNumber('pedido')->name('pedidos.aceptar');
+        Route::post('/pedidos/{pedido}/iniciar-ruta', [RepartidorController::class, 'iniciarRuta'])->whereNumber('pedido')->name('pedidos.iniciar');
+        Route::post('/pedidos/{pedido}/entregado', [RepartidorController::class, 'confirmarEntrega'])->whereNumber('pedido')->name('pedidos.entregado');
+        Route::post('/pedidos/{pedido}/incidencia', [RepartidorController::class, 'marcarProblema'])->whereNumber('pedido')->name('pedidos.incidencia');
+
         Route::post('/items/{item}/entregar', [PedidoRepartidorController::class, 'entregar'])->whereNumber('item')->name('items.entregar');
         Route::get('/perfil', [RepartidorController::class, 'perfil'])->name('perfil');
         Route::get('/soporte', [RepartidorController::class, 'soporte'])->name('soporte');
-        Route::get('/pedidos/asignados', [RepartidorController::class, 'pedidosAsignados'])->name('pedidos.asignados');
-        Route::get('/pedidos/entregados', [RepartidorController::class, 'pedidosEntregados'])->name('pedidos.entregados');
     });
 
 /*

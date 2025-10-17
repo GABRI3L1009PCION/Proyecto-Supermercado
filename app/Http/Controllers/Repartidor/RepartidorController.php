@@ -23,29 +23,38 @@ class RepartidorController extends Controller
         $id = auth()->id();
 
         $stats = [
-            'pendientes' => \App\Models\Pedido::where('repartidor_id',$id)->where('estado','asignado')->count(),
-            'en_camino'  => \App\Models\Pedido::where('repartidor_id',$id)->where('estado','en_camino')->count(),
-            'entregados' => \App\Models\Pedido::where('repartidor_id',$id)->where('estado','entregado')->count(),
+            'pendientes' => Pedido::where('repartidor_id', $id)->where('estado', 'asignado')->count(),
+            'en_camino'  => Pedido::where('repartidor_id', $id)->where('estado', 'en_camino')->count(),
+            'entregados' => Pedido::where('repartidor_id', $id)->where('estado', 'entregado')->count(),
         ];
 
-        $pedidos = \App\Models\Pedido::with(['cliente'])
-            ->where('repartidor_id',$id)
-            ->whereIn('estado',['asignado','aceptado','en_camino'])
-            ->latest()->get();
+        $pedidos = Pedido::with(['cliente:id,name,telefono', 'productos'])
+            ->where('repartidor_id', $id)
+            ->whereIn('estado', ['asignado', 'aceptado', 'en_camino'])
+            ->orderByRaw("FIELD(estado,'asignado','aceptado','en_camino')")
+            ->latest()
+            ->get();
+
+        $historial = Pedido::with('cliente:id,name')
+            ->where('repartidor_id', $id)
+            ->where('estado', 'entregado')
+            ->latest('fecha_entregado')
+            ->take(10)
+            ->get();
 
         $metricas = [
-            'entregadosHoy' => \App\Models\Pedido::where('repartidor_id',$id)
-                ->where('estado','entregado')
+            'entregadosHoy' => Pedido::where('repartidor_id', $id)
+                ->where('estado', 'entregado')
                 ->whereDate('fecha_entregado', now())->count(),
-            'tiempoPromedioMin' => \App\Models\Pedido::where('repartidor_id',$id)
-                ->where('estado','entregado')
+            'tiempoPromedioMin' => Pedido::where('repartidor_id', $id)
+                ->where('estado', 'entregado')
                 ->whereNotNull('fecha_salida')->whereNotNull('fecha_entregado')
                 ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, fecha_salida, fecha_entregado)) as m')->value('m'),
         ];
 
         $estadoUsuario = 'Disponible'; // cámbialo si tienes lógica de presencia
 
-        return view('repartidor.panel', compact('stats','pedidos','metricas','estadoUsuario'));
+        return view('repartidor.panel', compact('stats', 'pedidos', 'metricas', 'estadoUsuario', 'historial'));
     }
 
 
@@ -53,7 +62,7 @@ class RepartidorController extends Controller
     {
         $id = Auth::id();
 
-        $pedidos = Pedido::with(['cliente:id,nombre,telefono,direccion', 'productos'])
+        $pedidos = Pedido::with(['cliente:id,name,telefono', 'productos'])
             ->where('repartidor_id', $id)
             ->whereIn('estado', ['asignado', 'aceptado', 'en_camino'])
             ->orderByRaw("FIELD(estado,'asignado','aceptado','en_camino')")
@@ -67,7 +76,7 @@ class RepartidorController extends Controller
     {
         $id = Auth::id();
 
-        $pedidos = Pedido::with('cliente:id,nombre')
+        $pedidos = Pedido::with('cliente:id,name')
             ->where('repartidor_id', $id)
             ->where('estado', 'entregado')
             ->latest('fecha_entregado')
@@ -154,6 +163,7 @@ class RepartidorController extends Controller
         DB::transaction(function () use ($pedido, $request) {
             $pedido->estado = 'entregado';
             $pedido->fecha_entregado = now();
+            $pedido->estado_global = 'entregado';
 
             if ($request->hasFile('evidencia_firma')) {
                 $pedido->evidencia_firma = $request->file('evidencia_firma')->store('firmas', 'public');
@@ -208,8 +218,8 @@ class RepartidorController extends Controller
         $id = Auth::id();
 
         $pedidos = Pedido::with([
-            'cliente:id,nombre,direccion',
-            'productos:id,pedido_id,nombre,cantidad'
+            'cliente:id,name',
+            'productos:id'
         ])
             ->where('repartidor_id', $id)
             ->whereIn('estado', ['asignado', 'aceptado', 'en_camino'])
@@ -219,14 +229,14 @@ class RepartidorController extends Controller
                 return [
                     'id'        => $p->id,
                     'codigo'    => $p->codigo ?? ('PED-' . $p->id),
-                    'cliente'   => optional($p->cliente)->nombre,
-                    'direccion' => optional($p->cliente)->direccion ?? $p->direccion_entrega,
+                    'cliente'   => optional($p->cliente)->name,
+                    'direccion' => $p->direccion_formateada,
                     'horaLimite'=> optional($p->hora_limite_entrega)?->format('H:i') ?? '--:--',
                     'urgente'   => (bool)($p->urgente ?? false),
                     'estado'    => $p->estado,
                     'items'     => $p->productos->map(fn($it) => [
                         'nombre'  => $it->nombre,
-                        'cantidad'=> $it->cantidad,
+                        'cantidad'=> $it->pivot->cantidad ?? 0,
                     ]),
                 ];
             });
@@ -245,21 +255,21 @@ class RepartidorController extends Controller
             'codigo' => $pedido->codigo ?? ('PED-' . $pedido->id),
             'estado' => $pedido->estado,
             'cliente' => [
-                'nombre'    => optional($pedido->cliente)->nombre,
+                'nombre'    => optional($pedido->cliente)->name,
                 'telefono'  => optional($pedido->cliente)->telefono,
-                'direccion' => optional($pedido->cliente)->direccion ?? $pedido->direccion_entrega,
-                'lat'       => $pedido->latitud_entrega,
-                'lng'       => $pedido->longitud_entrega,
+                'direccion' => $pedido->direccion_formateada,
+                'lat'       => $pedido->latitud_entrega ?? data_get($pedido->direccion_envio, 'lat'),
+                'lng'       => $pedido->longitud_entrega ?? data_get($pedido->direccion_envio, 'lng'),
             ],
             'totales' => [
                 'subtotal' => $pedido->subtotal,
-                'envio'    => $pedido->costo_envio,
+                'envio'    => $pedido->envio,
                 'total'    => $pedido->total,
             ],
             'productos' => $pedido->productos->map(fn($it) => [
                 'nombre'  => $it->nombre,
-                'cantidad'=> $it->cantidad,
-                'precio'  => $it->precio_unitario,
+                'cantidad'=> $it->pivot->cantidad ?? 0,
+                'precio'  => $it->pivot->precio_unitario ?? 0,
             ]),
         ]);
     }

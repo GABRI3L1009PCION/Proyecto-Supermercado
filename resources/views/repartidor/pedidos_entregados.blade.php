@@ -7,8 +7,8 @@
             <ul class="list-group mt-4">
                 @foreach ($pedidos as $pedido)
                     <li class="list-group-item">
-                        Pedido #{{ $pedido->id }} - {{ $pedido->cliente->nombre }}
-                        <span class="float-end">Entregado el {{ $pedido->fecha_entrega }}</span>
+                        Pedido {{ $pedido->codigo ?? ('PED-' . $pedido->id) }} - {{ optional($pedido->cliente)->name ?? 'Cliente' }}
+                        <span class="float-end">Entregado el {{ optional($pedido->fecha_entregado)->format('d/m/Y H:i') }}</span>
                     </li>
                 @endforeach
             </ul>
