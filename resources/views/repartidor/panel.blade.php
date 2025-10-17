@@ -21,14 +21,9 @@
         $entregadosTotales = $stats['entregados'] ?? 0;
         $promedioTiempo = $historial
             ->map(function ($item) {
-                $inicio = $item->created_at;
-                $fin = $item->updated_at;
-
-                if (! $inicio || ! $fin) {
-                    return null;
-                }
-
-                return $inicio->diffInMinutes($fin);
+                $inicio = optional($item->created_at);
+                $fin = optional($item->updated_at);
+                return ($inicio && $fin) ? $inicio->diffInMinutes($fin) : null;
             })
             ->filter()
             ->avg();
