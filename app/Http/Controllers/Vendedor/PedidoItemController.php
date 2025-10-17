@@ -133,6 +133,14 @@ class PedidoItemController extends Controller
         $pedido->syncEnvioFromItems();
         $pedido->refreshEstadoGlobalFromItems();
 
+        if ($deliveryMode === PedidoItem::DELIVERY_MARKET_COURIER && $repartidorId) {
+            $pedido->forceFill([
+                'repartidor_id'  => $repartidorId,
+                'estado'         => 'asignado',
+                'fecha_asignado' => now(),
+            ])->save();
+        }
+
         return back()->with('ok', 'Preferencias de entrega actualizadas.');
     }
 }

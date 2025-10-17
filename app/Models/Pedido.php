@@ -20,6 +20,18 @@ class Pedido extends Model
         'metodo_pago',
         'estado_pago',
         'estado_global',
+        'estado',
+        'fecha_asignado',
+        'fecha_aceptado',
+        'fecha_salida',
+        'fecha_entregado',
+        'fecha_incidencia',
+        'motivo_incidencia',
+        'evidencia_firma',
+        'urgente',
+        'hora_limite_entrega',
+        'latitud_entrega',
+        'longitud_entrega',
         'direccion_envio',
         'facturacion',
         'codigo', // Agregado para el código del pedido
@@ -30,6 +42,15 @@ class Pedido extends Model
         'descuento' => 'decimal:2',
         'envio' => 'decimal:2',
         'total' => 'decimal:2',
+        'fecha_asignado' => 'datetime',
+        'fecha_aceptado' => 'datetime',
+        'fecha_salida' => 'datetime',
+        'fecha_entregado' => 'datetime',
+        'fecha_incidencia' => 'datetime',
+        'hora_limite_entrega' => 'datetime',
+        'urgente' => 'boolean',
+        'latitud_entrega' => 'float',
+        'longitud_entrega' => 'float',
         'direccion_envio' => 'array',
         'facturacion' => 'array',
     ];
@@ -90,6 +111,11 @@ class Pedido extends Model
     public function getCodigoAttribute()
     {
         return $this->attributes['codigo'] ?? 'PED-' . $this->id;
+    }
+
+    public function getDireccionEntregaAttribute(): string
+    {
+        return $this->getDireccionFormateadaAttribute();
     }
 
     // Verificar si el pedido pertenece al usuario autenticado

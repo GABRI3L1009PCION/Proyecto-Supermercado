@@ -123,14 +123,15 @@
         @if($pedidos->count())
             @foreach ($pedidos as $pedido)
                 <div class="pedido-card">
-                    <h5>Pedido #{{ $pedido->id }}</h5>
+                    <h5>Pedido {{ $pedido->codigo ?? ('PED-' . $pedido->id) }}</h5>
 
                     <div class="pedido-info">
-                        <p><i class="fas fa-user"></i> Cliente: {{ optional($pedido->cliente)->nombre ?? 'Sin nombre' }}</p>
-                        <p><i class="fas fa-calendar-day"></i> Fecha: {{ $pedido->created_at->format('d/m/Y') }}</p>
+                        <p><i class="fas fa-user"></i> Cliente: {{ optional($pedido->cliente)->name ?? 'Sin nombre' }}</p>
+                        <p><i class="fas fa-calendar-day"></i> Fecha: {{ optional($pedido->created_at)->format('d/m/Y H:i') }}</p>
                         <p><i class="fas fa-money-bill-wave"></i> Total: Q{{ number_format($pedido->total, 2) }}</p>
-                        @if($pedido->direccion)
-                            <p><i class="fas fa-map-marker-alt"></i> Dirección: {{ $pedido->direccion }}</p>
+                        <p><i class="fas fa-map-marker-alt"></i> Dirección: {{ $pedido->direccion_formateada }}</p>
+                        @if(($telefonoContacto = data_get($pedido->direccion_envio, 'telefono')))
+                            <p><i class="fas fa-phone"></i> Contacto: {{ $telefonoContacto }}</p>
                         @endif
                     </div>
 
@@ -140,7 +141,7 @@
 
                     <div class="pedido-actions">
                         @if($pedido->estado === 'asignado')
-                            <form action="{{ route('repartidor.pedido.aceptar', $pedido->id) }}" method="POST">
+                            <form action="{{ route('repartidor.pedidos.aceptar', $pedido) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="btn-aceptar">
                                     <i class="fas fa-handshake"></i> Aceptar pedido
@@ -149,28 +150,43 @@
                         @endif
 
                         @if($pedido->estado === 'aceptado')
-                            <form action="{{ route('repartidor.pedido.confirmar', $pedido->id) }}" method="POST">
+                            <form action="{{ route('repartidor.pedidos.iniciar', $pedido) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn-confirmar">
+                                <button type="submit" class="btn-aceptar">
+                                    <i class="fas fa-route"></i> Iniciar ruta
+                                </button>
+                            </form>
+                        @endif
+
+                        @if(in_array($pedido->estado, ['aceptado','en_camino']))
+                            <form action="{{ route('repartidor.pedidos.entregado', $pedido) }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <input type="file" name="evidencia_firma" accept="image/*" class="form-control form-control-sm" style="background:#fff;border-radius:8px;border:1px dashed #ffc107;">
+                                <button type="submit" class="btn-confirmar" style="margin-top:6px;">
                                     <i class="fas fa-check-circle"></i> Confirmar entrega
                                 </button>
                             </form>
                         @endif
 
                         <!-- Ver ubicación -->
-                        <a href="{{ $pedido->direccion
-                                ? 'https://www.google.com/maps/dir/?api=1&origin=Mi+Ubicacion&destination=' . urlencode($pedido->direccion)
-                                : '#' }}"
+                        @php
+                            $lat = $pedido->latitud_entrega ?? data_get($pedido->direccion_envio, 'lat');
+                            $lng = $pedido->longitud_entrega ?? data_get($pedido->direccion_envio, 'lng');
+                            $destino = $lat && $lng
+                                ? 'https://www.google.com/maps/search/?api=1&query=' . $lat . ',' . $lng
+                                : ($pedido->direccion_formateada ? 'https://www.google.com/maps/dir/?api=1&origin=Mi+Ubicacion&destination=' . urlencode($pedido->direccion_formateada) : null);
+                        @endphp
+                        <a href="{{ $destino ?? '#' }}"
                            target="_blank"
-                           class="btn-rastreo {{ $pedido->direccion ? '' : 'disabled' }}"
-                           title="{{ $pedido->direccion ? 'Ver ruta en Google Maps' : 'Dirección no disponible' }}">
+                           class="btn-rastreo {{ $destino ? '' : 'disabled' }}"
+                           title="{{ $destino ? 'Ver ruta en Google Maps' : 'Dirección no disponible' }}">
                             <i class="fas fa-route"></i> Ver ubicación
                         </a>
 
                         <!-- Rechazar -->
-                        @if(in_array($pedido->estado, ['asignado', 'aceptado']))
+                        @if(in_array($pedido->estado, ['asignado', 'aceptado', 'en_camino']))
                             <button type="button" class="btn-rechazar" onclick="rechazarPedido({{ $pedido->id }})">
-                                <i class="fas fa-times-circle"></i> Rechazar
+                                <i class="fas fa-triangle-exclamation"></i> Reportar incidencia
                             </button>
                         @endif
                     </div>
@@ -194,8 +210,8 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
-                        <label for="justificacion">Motivo del rechazo:</label>
-                        <textarea name="justificacion" class="form-control" required rows="3"
+                        <label for="motivo">Motivo del reporte:</label>
+                        <textarea name="motivo" id="motivo" class="form-control" required rows="3"
                                   placeholder="Ejemplo: Cliente no se encontraba, dirección incorrecta, etc."></textarea>
                     </div>
                     <div class="modal-footer">
@@ -211,7 +227,7 @@
     <script>
         function rechazarPedido(id) {
             const form = document.getElementById('formRechazo');
-            form.action = `/repartidor/pedidos/${id}/rechazar`;
+            form.action = `/repartidor/pedidos/${id}/incidencia`;
             const modal = new bootstrap.Modal(document.getElementById('modalRechazo'));
             modal.show();
         }

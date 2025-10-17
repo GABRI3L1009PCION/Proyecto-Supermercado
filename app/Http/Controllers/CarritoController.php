@@ -279,6 +279,7 @@ class CarritoController extends Controller
                 'metodo_pago'     => $data['metodo_pago'] ?? 'efectivo',
                 'estado_pago'     => 'pendiente',
                 'estado_global'   => 'pendiente',
+                'estado'          => 'pendiente',
                 'direccion_envio' => $direccionEnvio,
                 'facturacion'     => $facturacion,
             ]);

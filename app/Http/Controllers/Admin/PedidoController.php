@@ -61,9 +61,12 @@ class PedidoController extends Controller
         ]);
 
         $pedido = Pedido::findOrFail($id);
-        $pedido->repartidor_id = $request->repartidor_id;
-        $pedido->estado_global = 'preparando';
-        $pedido->save();
+        $pedido->forceFill([
+            'repartidor_id'   => $request->repartidor_id,
+            'estado_global'   => 'preparando',
+            'estado'          => 'asignado',
+            'fecha_asignado'  => now(),
+        ])->save();
 
         $pedido->refresh();
         $pedido->syncEnvioFromItems();
@@ -92,9 +95,12 @@ class PedidoController extends Controller
         ]);
 
         $pedido = Pedido::findOrFail($pedido);
-        $pedido->repartidor_id = $request->repartidor_id;
-        $pedido->estado_global = 'preparando';
-        $pedido->save();
+        $pedido->forceFill([
+            'repartidor_id'  => $request->repartidor_id,
+            'estado_global'  => 'preparando',
+            'estado'         => 'asignado',
+            'fecha_asignado' => now(),
+        ])->save();
 
         return redirect()->route('admin.pedidos.index')->with('success', 'Repartidor asignado correctamente.');
     }
