@@ -83,7 +83,7 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:cliente'])->group(function () {
-    Route::get('/cliente', fn () => view('panel.cliente'))->name('cliente.panel');
+    Route::get('/cliente', fn () => redirect()->route('cliente.productos'))->name('cliente.panel');
 
     // Carrito
     Route::get('/carrito', [CarritoController::class, 'ver'])->name('carrito.ver');
