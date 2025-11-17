@@ -186,6 +186,9 @@
                 <a href="{{ route('vendedor.productos.index') }}" class="vd-btn">
                     <i class="fas fa-box"></i> Ver mis productos
                 </a>
+                <a href="{{ route('vendedor.zonas.index') }}" class="vd-btn vd-btn--info">
+                    <i class="fas fa-map-marked-alt"></i> Mis zonas de reparto
+                </a>
             </div>
         </div>
 
