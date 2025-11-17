@@ -36,12 +36,6 @@
                 </label>
 
                 <label>
-                    <span>Tarifa de entrega (Q)</span>
-                    <input type="number" step="0.01" min="0" max="500" name="delivery_price" value="{{ old('delivery_price', $producto->delivery_price) }}">
-                    <small class="helper">Establece el costo de envío que cobrarás por pedido para este producto.</small>
-                </label>
-
-                <label>
                     <span>Stock</span>
                     <input type="number" name="stock" value="{{ old('stock', $producto->stock) }}" required>
                 </label>

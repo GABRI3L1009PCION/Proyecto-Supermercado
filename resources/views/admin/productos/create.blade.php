@@ -46,14 +46,6 @@
                        style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px;">
             </div>
 
-            <div style="flex: 1 1 48%;">
-                <label style="display: block; font-weight: bold; color: #800020; margin-bottom: 6px;">Tarifa de entrega (Q)</label>
-                <input type="number" step="0.01" min="0" max="500" name="delivery_price"
-                       value="{{ old('delivery_price') }}"
-                       style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px;">
-                <small style="color:#6b7280;display:block;margin-top:4px;">Define el costo de envío aplicado por producto del supermercado.</small>
-            </div>
-
             <!-- Stock -->
             <div style="flex: 1 1 48%;">
                 <label style="display: block; font-weight: bold; color: #800020; margin-bottom: 6px;">Stock:</label>
