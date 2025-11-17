@@ -8,25 +8,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class VendorDeliveryZone extends Model
 {
     protected $fillable = [
-        'vendor_id',
+        'seller_id',
         'nombre',
-        'coverage',
-        'delivery_fee',
-        'activo',
+        'descripcion_cobertura',
+        'tarifa_reparto',
+        'activa',
     ];
 
     protected $casts = [
-        'delivery_fee' => 'decimal:2',
-        'activo'       => 'boolean',
+        'tarifa_reparto' => 'decimal:2',
+        'activa'         => 'boolean',
     ];
 
     public function vendor(): BelongsTo
     {
-        return $this->belongsTo(Vendor::class);
+        return $this->belongsTo(Vendor::class, 'seller_id');
     }
 
     public function scopeActivas($query)
     {
-        return $query->where('activo', true);
+        return $query->where('activa', true);
     }
 }

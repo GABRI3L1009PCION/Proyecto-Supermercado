@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('vendor_delivery_zones', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('vendor_id')->constrained('vendors')->cascadeOnDelete();
+            $table->foreignId('seller_id')->constrained('vendors')->cascadeOnDelete();
             $table->string('nombre', 120);
-            $table->text('coverage')->nullable();
-            $table->decimal('delivery_fee', 8, 2)->default(0);
-            $table->boolean('activo')->default(true);
+            $table->text('descripcion_cobertura')->nullable();
+            $table->decimal('tarifa_reparto', 8, 2)->default(0);
+            $table->boolean('activa')->default(true);
             $table->timestamps();
         });
     }

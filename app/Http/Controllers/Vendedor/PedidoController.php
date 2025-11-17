@@ -158,8 +158,11 @@ class PedidoController extends Controller
 
         $vendorZones = optional(auth()->user()->vendor)
             ?->deliveryZones()
+            ->where('activa', true)
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'coverage', 'delivery_fee', 'activo']) ?? collect();
+            ->get(['id', 'nombre', 'descripcion_cobertura', 'tarifa_reparto', 'activa']) ?? collect();
+
+        $hasVendorZones = $vendorZones->isNotEmpty();
 
         $marketCourierStatus = MarketCourierStatus::current();
 
@@ -177,6 +180,7 @@ class PedidoController extends Controller
             'deliveryInconsistent'=> $deliveryInconsistent,
             'repartidores'        => $repartidores,
             'vendorZones'         => $vendorZones,
+            'hasVendorZones'      => $hasVendorZones,
             'marketCourierStatus' => $marketCourierStatus->toArrayForDisplay(),
             'marketCourierStatusUpdatedAt' => optional($marketCourierStatus->updated_at)?->diffForHumans(),
             'marketCourierFee'    => config('market.courier_fee', 20),

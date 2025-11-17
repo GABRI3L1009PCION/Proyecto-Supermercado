@@ -15,7 +15,6 @@ class Producto extends Model
         'nombre',
         'slug',
         'precio',
-        'delivery_price',
         'stock',
         'status',
         'estado',
@@ -26,7 +25,6 @@ class Producto extends Model
 
     protected $casts = [
         'precio'         => 'decimal:2',
-        'delivery_price' => 'decimal:2',
         'stock'          => 'integer',
     ];
 

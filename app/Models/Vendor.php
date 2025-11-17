@@ -20,7 +20,7 @@ class Vendor extends Model
 
     public function deliveryZones(): HasMany
     {
-        return $this->hasMany(VendorDeliveryZone::class);
+        return $this->hasMany(VendorDeliveryZone::class, 'seller_id');
     }
 
     // Atajo útil

@@ -27,25 +27,25 @@
                 </div>
 
                 <div class="col-12">
-                    <label class="form-label" for="coverage">Cobertura (barrios, colonias, sectores)</label>
-                    <textarea id="coverage" name="coverage" class="form-control" rows="3" maxlength="500"
-                              placeholder="Ej: Zona 1 - Col. Las Lomas, Res. Las Flores, Barrio Centro">{{ old('coverage', $zone->coverage) }}</textarea>
+                    <label class="form-label" for="descripcion_cobertura">Cobertura (barrios, colonias, sectores)</label>
+                    <textarea id="descripcion_cobertura" name="descripcion_cobertura" class="form-control" rows="3" maxlength="500"
+                              placeholder="Ej: Zona 1 - Col. Las Lomas, Res. Las Flores, Barrio Centro">{{ old('descripcion_cobertura', $zone->descripcion_cobertura) }}</textarea>
                     <small class="text-muted">Describe dónde ofreces la entrega dentro de esta zona.</small>
-                    @error('coverage')<small class="text-danger">{{ $message }}</small>@enderror
+                    @error('descripcion_cobertura')<small class="text-danger">{{ $message }}</small>@enderror
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label" for="delivery_fee">Tarifa de reparto (Q) *</label>
-                    <input type="number" step="0.01" min="0" max="500" id="delivery_fee" name="delivery_fee" class="form-control"
-                           value="{{ old('delivery_fee', $zone->delivery_fee) }}" required>
-                    @error('delivery_fee')<small class="text-danger">{{ $message }}</small>@enderror
+                    <label class="form-label" for="tarifa_reparto">Tarifa de reparto (Q) *</label>
+                    <input type="number" step="0.01" min="0" max="500" id="tarifa_reparto" name="tarifa_reparto" class="form-control"
+                           value="{{ old('tarifa_reparto', $zone->tarifa_reparto) }}" required>
+                    @error('tarifa_reparto')<small class="text-danger">{{ $message }}</small>@enderror
                 </div>
 
                 <div class="col-md-6 d-flex align-items-center">
                     <div class="form-check mt-4">
-                        <input type="checkbox" class="form-check-input" id="activo" name="activo"
-                               value="1" {{ old('activo', $zone->activo ?? true) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="activo">Zona activa</label>
+                        <input type="checkbox" class="form-check-input" id="activa" name="activa"
+                               value="1" {{ old('activa', $zone->activa ?? true) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="activa">Zona activa</label>
                     </div>
                 </div>
 
