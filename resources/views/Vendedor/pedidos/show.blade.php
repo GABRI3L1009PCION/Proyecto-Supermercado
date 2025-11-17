@@ -84,7 +84,7 @@
     $facturacion = $facturacion ?? ['requiere'=>false,'nit'=>'CF','nombre'=>null,'direccion'=>null,'telefono'=>null];
     $repartidores = $repartidores ?? collect();
     $vendorZones = $vendorZones ?? collect();
-    $hasVendorZones = $vendorZones->count() > 0;
+    $hasVendorZones = isset($hasVendorZones) ? (bool) $hasVendorZones : $vendorZones->count() > 0;
     $marketCourierStatus = $marketCourierStatus ?? [
         'status' => \App\Models\MarketCourierStatus::STATUS_AVAILABLE,
         'label'  => 'Disponible para reparto',
@@ -94,8 +94,18 @@
     $marketCourierFee = $marketCourierFee ?? 20;
     $marketCourierStatusEndpoint = $marketCourierStatusEndpoint ?? null;
     $estadoLabels = $estadoLabels ?? [];
-    $selectedDeliveryMode = old('delivery_mode', $delivery['mode']);
-    $selectedVendorZone = old('vendor_zone_id', $delivery['vendor_zone_id']);
+    $vendorSelfMode = \App\Models\PedidoItem::DELIVERY_VENDOR_SELF;
+    $vendorCourierMode = \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER;
+    $marketCourierMode = \App\Models\PedidoItem::DELIVERY_MARKET_COURIER;
+    $selectedDeliveryMode = old('delivery_mode', $delivery['mode'] ?? $vendorSelfMode);
+    $selectedVendorZone = (string) old('vendor_zone_id', $delivery['vendor_zone_id']);
+    $selectedRepartidor = old('repartidor_id', $delivery['repartidor_id']);
+    $deliveryFeePreview = number_format((float) ($delivery['fee'] ?? 0), 2, '.', '');
+    $showDriverSelect = in_array($selectedDeliveryMode, [$vendorCourierMode, $marketCourierMode], true);
+    $driverLabel = $selectedDeliveryMode === $vendorCourierMode ? 'Repartidor aliado' : 'Repartidor del supermercado';
+    $driverHelper = $selectedDeliveryMode === $vendorCourierMode
+        ? 'Asigna a tu repartidor aliado para coordinar la entrega.'
+        : 'Selecciona al repartidor del supermercado encargado de esta entrega.';
     $estadoBadgeMap = [
         'pendiente' => 'badge-pendiente',
         'pending' => 'badge-pendiente',
@@ -176,24 +186,31 @@
                     <label class="form-label d-block">¿Quién entregará?</label>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="delivery_mode" id="deliverySelf"
-                               value="{{ \App\Models\PedidoItem::DELIVERY_VENDOR_SELF }}"
-                            {{ $selectedDeliveryMode === \App\Models\PedidoItem::DELIVERY_VENDOR_SELF ? 'checked' : '' }}
+                               value="{{ $vendorSelfMode }}"
+                            {{ $selectedDeliveryMode === $vendorSelfMode ? 'checked' : '' }}
                             {{ $hasVendorZones ? '' : 'disabled' }}>
                         <label class="form-check-label" for="deliverySelf">Yo mismo</label>
                     </div>
                     <div class="form-check">
+                        <input class="form-check-input" type="radio" name="delivery_mode" id="deliveryPartner"
+                               value="{{ $vendorCourierMode }}"
+                            {{ $selectedDeliveryMode === $vendorCourierMode ? 'checked' : '' }}
+                            {{ $hasVendorZones ? '' : 'disabled' }}>
+                        <label class="form-check-label" for="deliveryPartner">Repartidor aliado</label>
+                    </div>
+                    <div class="form-check">
                         <input class="form-check-input" type="radio" name="delivery_mode" id="deliveryMarket"
-                               value="{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}"
-                            {{ $selectedDeliveryMode === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER ? 'checked' : '' }}>
+                               value="{{ $marketCourierMode }}"
+                            {{ $selectedDeliveryMode === $marketCourierMode ? 'checked' : '' }}>
                         <label class="form-check-label" for="deliveryMarket">Repartidor del supermercado</label>
                     </div>
                     @unless($hasVendorZones)
                         <div class="notice-card">
-                            Necesitas crear al menos una zona para poder entregar tú mismo.
+                            Necesitas crear al menos una zona activa para habilitar "Yo mismo" o "Repartidor aliado".
                             <a href="{{ route('vendedor.zonas.create') }}" class="fw-semibold">Crear zona de reparto</a>.
                         </div>
                     @endunless
-                    <div class="notice-card" id="marketCourierNotice" style="display:none;">
+                    <div class="alert alert-info mt-3" id="marketCourierNotice" {{ $selectedDeliveryMode === $marketCourierMode ? '' : 'style=display:none;' }}>
                         <strong>Recuerda:</strong> el repartidor del supermercado cobra una tarifa fija de Q{{ number_format($marketCourierFee, 2) }}.
                     </div>
                     <div class="market-status" id="marketCourierStatusBox" data-endpoint="{{ $marketCourierStatusEndpoint }}">
@@ -205,18 +222,23 @@
                             </small>
                         </div>
                     </div>
+                    <div class="small text-muted mt-1">
+                        <span class="me-2"><span class="market-status__dot" style="background:#22c55e"></span> Disponible para reparto</span>
+                        <span class="me-2"><span class="market-status__dot" style="background:#facc15"></span> Ocupado entregando pedido</span>
+                        <span><span class="market-status__dot" style="background:#ef4444"></span> Fuera de servicio</span>
+                    </div>
                 </div>
 
-                <div class="col-lg-4 col-12" id="vendorZoneWrapper" {{ $selectedDeliveryMode === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER ? 'style=display:none;' : '' }}>
+                <div class="col-lg-4 col-12" id="vendorZoneWrapper" {{ $selectedDeliveryMode === $marketCourierMode ? 'style=display:none;' : '' }}>
                     <label class="form-label" for="vendor_zone_id">Zona de reparto</label>
                     <select class="form-select" name="vendor_zone_id" id="vendor_zone_id" {{ $hasVendorZones ? '' : 'disabled' }}>
                         <option value="">Selecciona una zona</option>
                         @foreach($vendorZones as $zone)
                             <option value="{{ $zone->id }}"
-                                    data-fee="{{ number_format($zone->delivery_fee, 2, '.', '') }}"
-                                    data-coverage="{{ $zone->coverage }}"
+                                    data-fee="{{ number_format($zone->tarifa_reparto, 2, '.', '') }}"
+                                    data-coverage="{{ $zone->descripcion_cobertura }}"
                                 @selected((string)$selectedVendorZone === (string)$zone->id)>
-                                {{ $zone->nombre }} (Q{{ number_format($zone->delivery_fee, 2) }})
+                                {{ $zone->nombre }} (Q{{ number_format($zone->tarifa_reparto, 2) }})
                             </option>
                         @endforeach
                     </select>
@@ -226,30 +248,30 @@
                 </div>
 
                 <div class="col-lg-4 col-12">
-                    <label class="form-label" for="delivery_fee_input">Tarifa por entrega (Q)</label>
-                    <input type="number" step="0.01" min="0" max="500" class="form-control" id="delivery_fee_input"
-                           name="delivery_fee"
+                    <label class="form-label" for="delivery_fee_display">Tarifa por entrega (Q)</label>
+                    <input type="text" class="form-control bg-light" id="delivery_fee_display"
                            data-market-fee="{{ number_format($marketCourierFee, 2, '.', '') }}"
-                           data-default-fee="{{ number_format($delivery['fee'], 2, '.', '') }}"
-                           value="{{ old('delivery_fee', number_format($delivery['fee'], 2, '.', '')) }}">
-                    <small class="text-muted">La tarifa se ajusta según la zona o servicio seleccionado.</small>
+                           data-default-fee="{{ $deliveryFeePreview }}"
+                           value="{{ $deliveryFeePreview }}" readonly>
+                    <small class="text-muted">Se calcula automáticamente según tu zona o el servicio del supermercado.</small>
                 </div>
 
-                <div class="col-lg-4 col-12" id="repartidorWrapper" style="display:none;">
-                    <label class="form-label" for="repartidor_vendedor_select">Repartidor del supermercado</label>
-                    <select class="form-select" name="repartidor_id" id="repartidor_vendedor_select">
+                <div class="col-lg-4 col-12" id="repartidorWrapper" {{ $showDriverSelect ? '' : 'style=display:none;' }}>
+                    <label class="form-label" id="repartidorWrapperLabel" for="repartidor_vendedor_select">{{ $driverLabel }}</label>
+                    <select class="form-select" name="repartidor_id" id="repartidor_vendedor_select" {{ $showDriverSelect ? '' : 'disabled' }}>
                         <option value="">Selecciona un repartidor</option>
                         @foreach($repartidores as $rep)
-                            <option value="{{ $rep->id }}" @selected((int)old('repartidor_id', $delivery['repartidor_id']) === (int)$rep->id)>
+                            <option value="{{ $rep->id }}" @selected((int)$selectedRepartidor === (int)$rep->id)>
                                 {{ $rep->name }} {{ $rep->telefono ? '· '.$rep->telefono : '' }}
                             </option>
                         @endforeach
                     </select>
+                    <small class="text-muted d-block" id="repartidorWrapperHelper">{{ $driverHelper }}</small>
                     @error('repartidor_id')<small class="text-danger d-block">{{ $message }}</small>@enderror
                 </div>
             </div>
 
-            <div class="row g-3 mt-2" id="marketFields" style="display:none;">
+            <div class="row g-3 mt-2" id="marketFields" {{ $selectedDeliveryMode === $marketCourierMode ? '' : 'style=display:none;' }}>
                 <div class="col-md-4 col-12">
                     <label class="form-label" for="pickup_contact">Persona de contacto</label>
                     <input type="text" class="form-control" id="pickup_contact" name="pickup_contact"
@@ -367,23 +389,44 @@
         const zoneCoverageBox = document.getElementById('zoneCoverageBox');
         const repartidorWrapper = document.getElementById('repartidorWrapper');
         const repartidorSelect = document.getElementById('repartidor_vendedor_select');
-        const feeInput = document.getElementById('delivery_fee_input');
+        const repartidorLabel = document.getElementById('repartidorWrapperLabel');
+        const repartidorHelper = document.getElementById('repartidorWrapperHelper');
+        const feeInput = document.getElementById('delivery_fee_display');
         const marketNotice = document.getElementById('marketCourierNotice');
         const marketFee = parseFloat(feeInput?.dataset.marketFee || '0');
         const defaultFee = parseFloat(feeInput?.dataset.defaultFee || feeInput?.value || '0');
+        const deliveryModes = {
+            self: '{{ $vendorSelfMode }}',
+            ally: '{{ $vendorCourierMode }}',
+            market: '{{ $marketCourierMode }}',
+        };
 
         const toggleSections = () => {
             const checked = document.querySelector('input[name="delivery_mode"]:checked');
             const mode = checked ? checked.value : null;
-            const isMarket = mode === '{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}';
+            const isMarket = mode === deliveryModes.market;
+            const isVendorMode = mode === deliveryModes.self || mode === deliveryModes.ally;
+            const needsDriver = mode === deliveryModes.ally || mode === deliveryModes.market;
+
             if (zoneWrapper) {
-                zoneWrapper.style.display = isMarket ? 'none' : '';
+                zoneWrapper.style.display = isVendorMode ? '' : 'none';
+            }
+            if (zoneSelect) {
+                zoneSelect.disabled = !isVendorMode;
             }
             if (repartidorWrapper) {
-                repartidorWrapper.style.display = isMarket ? '' : 'none';
+                repartidorWrapper.style.display = needsDriver ? '' : 'none';
             }
             if (repartidorSelect) {
-                repartidorSelect.disabled = !isMarket;
+                repartidorSelect.disabled = !needsDriver;
+            }
+            if (repartidorLabel) {
+                repartidorLabel.textContent = mode === deliveryModes.ally ? 'Repartidor aliado' : 'Repartidor del supermercado';
+            }
+            if (repartidorHelper) {
+                repartidorHelper.textContent = mode === deliveryModes.ally
+                    ? 'Asigna a tu repartidor aliado para coordinar la entrega.'
+                    : 'Selecciona quién entregará este pedido por parte del supermercado.';
             }
             if (marketFields) {
                 marketFields.style.display = isMarket ? 'flex' : 'none';
@@ -392,18 +435,16 @@
                 marketNotice.style.display = isMarket ? 'block' : 'none';
             }
             if (feeInput) {
+                let fee = defaultFee;
                 if (isMarket) {
-                    feeInput.value = marketFee.toFixed(2);
-                    feeInput.setAttribute('readonly', 'readonly');
-                } else {
-                    feeInput.removeAttribute('readonly');
+                    fee = marketFee;
+                } else if (isVendorMode) {
                     const option = zoneSelect?.selectedOptions?.[0];
                     if (option && option.dataset.fee) {
-                        feeInput.value = parseFloat(option.dataset.fee).toFixed(2);
-                    } else {
-                        feeInput.value = defaultFee.toFixed(2);
+                        fee = parseFloat(option.dataset.fee);
                     }
                 }
+                feeInput.value = Number.isFinite(fee) ? fee.toFixed(2) : defaultFee.toFixed(2);
             }
         };
 
@@ -414,9 +455,6 @@
                 const coverage = option.dataset.coverage || '';
                 zoneCoverageBox.textContent = coverage ? 'Cobertura: ' + coverage : 'Sin cobertura definida para esta zona.';
                 zoneCoverageBox.style.display = 'block';
-                if (feeInput && option.dataset.fee) {
-                    feeInput.value = parseFloat(option.dataset.fee).toFixed(2);
-                }
             } else {
                 zoneCoverageBox.style.display = 'none';
             }

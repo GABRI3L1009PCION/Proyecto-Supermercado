@@ -41,12 +41,12 @@
                             <tr>
                                 <td>{{ $zone->nombre }}</td>
                                 <td class="d-none d-md-table-cell">
-                                    {{ $zone->coverage ? \Illuminate\Support\Str::limit($zone->coverage, 80) : '—' }}
+                                    {{ $zone->descripcion_cobertura ? \Illuminate\Support\Str::limit($zone->descripcion_cobertura, 80) : '—' }}
                                 </td>
-                                <td>Q{{ number_format($zone->delivery_fee, 2) }}</td>
+                                <td>Q{{ number_format($zone->tarifa_reparto, 2) }}</td>
                                 <td class="text-center">
-                                    <span class="badge {{ $zone->activo ? 'bg-success' : 'bg-secondary' }}">
-                                        {{ $zone->activo ? 'Activa' : 'Inactiva' }}
+                                    <span class="badge {{ $zone->activa ? 'bg-success' : 'bg-secondary' }}">
+                                        {{ $zone->activa ? 'Activa' : 'Inactiva' }}
                                     </span>
                                 </td>
                                 <td class="text-end">

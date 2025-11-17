@@ -82,18 +82,24 @@ class PedidoItemController extends Controller
         $data = $request->validate([
             'delivery_mode' => ['required', Rule::in([
                 PedidoItem::DELIVERY_VENDOR_SELF,
+                PedidoItem::DELIVERY_VENDOR_COURIER,
                 PedidoItem::DELIVERY_MARKET_COURIER,
             ])],
             'repartidor_id' => [
                 'nullable',
-                'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER,
+                Rule::requiredIf(fn () => in_array($request->input('delivery_mode'), [
+                    PedidoItem::DELIVERY_VENDOR_COURIER,
+                    PedidoItem::DELIVERY_MARKET_COURIER,
+                ], true)),
                 Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'repartidor')->where('estado', 'activo')),
             ],
-            'delivery_fee'  => ['nullable', 'numeric', 'min:0', 'max:500'],
             'vendor_zone_id' => [
                 'nullable',
-                'required_if:delivery_mode,' . PedidoItem::DELIVERY_VENDOR_SELF,
-                Rule::exists('vendor_delivery_zones', 'id')->where(fn ($q) => $q->where('vendor_id', $vendorId)),
+                Rule::requiredIf(fn () => in_array($request->input('delivery_mode'), [
+                    PedidoItem::DELIVERY_VENDOR_SELF,
+                    PedidoItem::DELIVERY_VENDOR_COURIER,
+                ], true)),
+                Rule::exists('vendor_delivery_zones', 'id')->where(fn ($q) => $q->where('seller_id', $vendorId)),
             ],
             'pickup_contact' => ['nullable', 'string', 'max:120', 'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER],
             'pickup_phone'   => ['nullable', 'string', 'max:45', 'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER],
@@ -107,14 +113,28 @@ class PedidoItemController extends Controller
             'pickup_address.required_if' => 'Indica la dirección donde el repartidor recogerá el producto.',
         ]);
 
-        $deliveryFee = (float) ($data['delivery_fee'] ?? 0);
         $deliveryMode = $data['delivery_mode'];
         $vendorZoneId = $data['vendor_zone_id'] ?? null;
+        $vendorZoneId = $vendorZoneId ? (int) $vendorZoneId : null;
         $marketCourierFee = (float) config('market.courier_fee', 20);
 
-        if ($deliveryMode === PedidoItem::DELIVERY_VENDOR_SELF && $vendorZoneId) {
-            $zone = VendorDeliveryZone::where('vendor_id', $vendorId)->find($vendorZoneId);
-            $deliveryFee = (float) ($zone?->delivery_fee ?? $deliveryFee);
+        $deliveryFee = 0;
+        $zone = null;
+
+        if ($vendorZoneId) {
+            $zone = VendorDeliveryZone::where('seller_id', $vendorId)
+                ->where('activa', true)
+                ->where('id', $vendorZoneId)
+                ->first();
+        }
+
+        if (in_array($deliveryMode, [PedidoItem::DELIVERY_VENDOR_SELF, PedidoItem::DELIVERY_VENDOR_COURIER], true)) {
+            if (!$zone) {
+                return back()->withErrors([
+                    'vendor_zone_id' => 'Selecciona una zona válida para calcular la tarifa.',
+                ]);
+            }
+            $deliveryFee = (float) $zone->tarifa_reparto;
         }
 
         if ($deliveryMode === PedidoItem::DELIVERY_MARKET_COURIER) {
@@ -124,8 +144,9 @@ class PedidoItemController extends Controller
 
         $repartidorId = match ($deliveryMode) {
             PedidoItem::DELIVERY_VENDOR_SELF    => auth()->id(),
+            PedidoItem::DELIVERY_VENDOR_COURIER => $data['repartidor_id'],
             PedidoItem::DELIVERY_MARKET_COURIER => $data['repartidor_id'],
-            default => null,
+            default                              => null,
         };
 
         foreach ($items as $index => $item) {

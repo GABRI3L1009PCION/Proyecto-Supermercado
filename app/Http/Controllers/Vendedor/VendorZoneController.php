@@ -11,10 +11,10 @@ class VendorZoneController extends Controller
 {
     public function index()
     {
-        $vendorId = $this->vendorId();
+        $sellerId = $this->sellerId();
 
-        $zones = VendorDeliveryZone::where('vendor_id', $vendorId)
-            ->orderByDesc('activo')
+        $zones = VendorDeliveryZone::where('seller_id', $sellerId)
+            ->orderByDesc('activa')
             ->orderBy('nombre')
             ->paginate(10);
 
@@ -25,7 +25,7 @@ class VendorZoneController extends Controller
 
     public function create()
     {
-        $this->vendorId();
+        $this->sellerId();
 
         return view('Vendedor.zonas.form', [
             'zone' => new VendorDeliveryZone(),
@@ -37,9 +37,9 @@ class VendorZoneController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $vendorId = $this->vendorId();
+        $sellerId = $this->sellerId();
         $data = $this->validateData($request);
-        $data['vendor_id'] = $vendorId;
+        $data['seller_id'] = $sellerId;
 
         VendorDeliveryZone::create($data);
 
@@ -81,21 +81,21 @@ class VendorZoneController extends Controller
     protected function validateData(Request $request): array
     {
         $data = $request->validate([
-            'nombre'      => ['required', 'string', 'max:120'],
-            'coverage'    => ['nullable', 'string', 'max:500'],
-            'delivery_fee'=> ['required', 'numeric', 'min:0', 'max:500'],
-            'activo'      => ['nullable', 'boolean'],
+            'nombre'                => ['required', 'string', 'max:120'],
+            'descripcion_cobertura' => ['nullable', 'string', 'max:500'],
+            'tarifa_reparto'        => ['required', 'numeric', 'min:0', 'max:500'],
+            'activa'                => ['nullable', 'boolean'],
         ], [
             'nombre.required' => 'Ingresa un nombre para la zona.',
-            'delivery_fee.required' => 'Define la tarifa para esta zona.',
+            'tarifa_reparto.required' => 'Define la tarifa para esta zona.',
         ]);
 
-        $data['activo'] = $request->boolean('activo', true);
+        $data['activa'] = $request->boolean('activa', true);
 
         return $data;
     }
 
-    protected function vendorId(): int
+    protected function sellerId(): int
     {
         $vendorId = optional(auth()->user()->vendor)->id;
         abort_if(!$vendorId, 403, 'No tienes perfil de vendedor activo.');
@@ -105,7 +105,7 @@ class VendorZoneController extends Controller
 
     protected function authorizeZone(VendorDeliveryZone $zone): void
     {
-        $vendorId = $this->vendorId();
-        abort_if((int) $zone->vendor_id !== $vendorId, 403, 'No puedes gestionar esta zona.');
+        $sellerId = $this->sellerId();
+        abort_if((int) $zone->seller_id !== $sellerId, 403, 'No puedes gestionar esta zona.');
     }
 }
