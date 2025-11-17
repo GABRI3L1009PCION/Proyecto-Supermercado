@@ -41,6 +41,8 @@ use App\Http\Controllers\Vendedor\ProductoController as VendedorProductoControll
 use App\Http\Controllers\Vendedor\PedidoController as VendedorPedidoController;
 use App\Http\Controllers\Vendedor\PedidoItemController;
 use App\Http\Controllers\Vendedor\ItemController;
+use App\Http\Controllers\Vendedor\VendorZoneController;
+use App\Http\Controllers\Vendedor\MarketCourierStatusController;
 use App\Http\Controllers\Vendedor\ReseñaController;
 use App\Http\Controllers\Vendedor\VendedorPerfilController;
 
@@ -208,6 +210,21 @@ Route::middleware(['auth', 'role:vendedor', 'vendor.active'])
             ->whereNumber('pedido')->name('pedidos.estado');
         Route::post('/pedidos/{pedido}/logistica', [PedidoItemController::class, 'assignDelivery'])
             ->whereNumber('pedido')->name('pedidos.logistica');
+
+        // Zonas de reparto personalizadas
+        Route::get('/zonas-reparto', [VendorZoneController::class, 'index'])->name('zonas.index');
+        Route::get('/zonas-reparto/crear', [VendorZoneController::class, 'create'])->name('zonas.create');
+        Route::post('/zonas-reparto', [VendorZoneController::class, 'store'])->name('zonas.store');
+        Route::get('/zonas-reparto/{zona}/editar', [VendorZoneController::class, 'edit'])
+            ->whereNumber('zona')->name('zonas.edit');
+        Route::put('/zonas-reparto/{zona}', [VendorZoneController::class, 'update'])
+            ->whereNumber('zona')->name('zonas.update');
+        Route::delete('/zonas-reparto/{zona}', [VendorZoneController::class, 'destroy'])
+            ->whereNumber('zona')->name('zonas.destroy');
+
+        // Estado del repartidor del supermercado
+        Route::get('/repartidor-supermercado/estado', MarketCourierStatusController::class)
+            ->name('repartidor.estado');
 
         // Perfil del vendedor
         Route::get('/perfil', [VendedorPerfilController::class, 'index'])->name('perfil');

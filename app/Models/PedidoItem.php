@@ -21,6 +21,7 @@ class PedidoItem extends Model
         'precio_unitario',
         'fulfillment_status',
         'delivery_mode',
+        'vendor_zone_id',
         'delivery_fee',
         'repartidor_id',
         'justificacion',
@@ -89,6 +90,11 @@ class PedidoItem extends Model
     public function repartidor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'repartidor_id');
+    }
+
+    public function vendorZone(): BelongsTo
+    {
+        return $this->belongsTo(VendorDeliveryZone::class, 'vendor_zone_id');
     }
 
     public function reseña(): HasOne

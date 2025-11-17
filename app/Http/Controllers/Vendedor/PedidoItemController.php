@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Vendedor;
 use App\Http\Controllers\Controller;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
+use App\Models\VendorDeliveryZone;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -81,22 +82,26 @@ class PedidoItemController extends Controller
         $data = $request->validate([
             'delivery_mode' => ['required', Rule::in([
                 PedidoItem::DELIVERY_VENDOR_SELF,
-                PedidoItem::DELIVERY_VENDOR_COURIER,
                 PedidoItem::DELIVERY_MARKET_COURIER,
             ])],
             'repartidor_id' => [
                 'nullable',
-                'required_if:delivery_mode,' . PedidoItem::DELIVERY_VENDOR_COURIER,
                 'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER,
                 Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'repartidor')->where('estado', 'activo')),
             ],
             'delivery_fee'  => ['nullable', 'numeric', 'min:0', 'max:500'],
+            'vendor_zone_id' => [
+                'nullable',
+                'required_if:delivery_mode,' . PedidoItem::DELIVERY_VENDOR_SELF,
+                Rule::exists('vendor_delivery_zones', 'id')->where(fn ($q) => $q->where('vendor_id', $vendorId)),
+            ],
             'pickup_contact' => ['nullable', 'string', 'max:120', 'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER],
             'pickup_phone'   => ['nullable', 'string', 'max:45', 'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER],
             'pickup_address' => ['nullable', 'string', 'max:255', 'required_if:delivery_mode,' . PedidoItem::DELIVERY_MARKET_COURIER],
             'delivery_instructions' => ['nullable', 'string', 'max:500'],
         ], [
             'repartidor_id.required_if' => 'Selecciona un repartidor disponible para la entrega.',
+            'vendor_zone_id.required_if' => 'Selecciona la zona que cubrirás al repartir.',
             'pickup_contact.required_if' => 'Ingresa el contacto para coordinar la recolección.',
             'pickup_phone.required_if' => 'Agrega el teléfono de contacto para la recolección.',
             'pickup_address.required_if' => 'Indica la dirección donde el repartidor recogerá el producto.',
@@ -104,9 +109,21 @@ class PedidoItemController extends Controller
 
         $deliveryFee = (float) ($data['delivery_fee'] ?? 0);
         $deliveryMode = $data['delivery_mode'];
+        $vendorZoneId = $data['vendor_zone_id'] ?? null;
+        $marketCourierFee = (float) config('market.courier_fee', 20);
+
+        if ($deliveryMode === PedidoItem::DELIVERY_VENDOR_SELF && $vendorZoneId) {
+            $zone = VendorDeliveryZone::where('vendor_id', $vendorId)->find($vendorZoneId);
+            $deliveryFee = (float) ($zone?->delivery_fee ?? $deliveryFee);
+        }
+
+        if ($deliveryMode === PedidoItem::DELIVERY_MARKET_COURIER) {
+            $vendorZoneId = null;
+            $deliveryFee = $marketCourierFee;
+        }
+
         $repartidorId = match ($deliveryMode) {
             PedidoItem::DELIVERY_VENDOR_SELF    => auth()->id(),
-            PedidoItem::DELIVERY_VENDOR_COURIER,
             PedidoItem::DELIVERY_MARKET_COURIER => $data['repartidor_id'],
             default => null,
         };
@@ -115,6 +132,7 @@ class PedidoItemController extends Controller
             $item->delivery_mode = $deliveryMode;
             $item->delivery_fee = $index === 0 ? $deliveryFee : 0;
             $item->repartidor_id = $repartidorId;
+            $item->vendor_zone_id = $vendorZoneId;
             if ($deliveryMode === PedidoItem::DELIVERY_MARKET_COURIER) {
                 $item->pickup_contact = $data['pickup_contact'];
                 $item->pickup_phone = $data['pickup_phone'];

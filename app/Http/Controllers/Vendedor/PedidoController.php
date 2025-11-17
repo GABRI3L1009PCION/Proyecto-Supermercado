@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Vendedor;
 
 use App\Http\Controllers\Controller;
+use App\Models\MarketCourierStatus;
 use App\Models\Pedido;
 use App\Models\PedidoItem;
 use App\Models\User;
@@ -139,7 +140,7 @@ class PedidoController extends Controller
 
         $primerItem = $itemsVendor->first();
         $delivery = [
-            'mode'                  => $primerItem->delivery_mode ?? null,
+            'mode'                  => $primerItem->delivery_mode ?? PedidoItem::DELIVERY_VENDOR_SELF,
             'fee'                   => (float) ($primerItem->delivery_fee ?? 0),
             'repartidor'            => $primerItem?->repartidor,
             'repartidor_id'         => $primerItem?->repartidor_id,
@@ -147,12 +148,20 @@ class PedidoController extends Controller
             'pickup_phone'          => $primerItem?->pickup_phone,
             'pickup_address'        => $primerItem?->pickup_address,
             'delivery_instructions' => $primerItem?->delivery_instructions,
+            'vendor_zone_id'        => $primerItem?->vendor_zone_id,
         ];
 
         $repartidores = User::where('role', 'repartidor')
             ->where('estado', 'activo')
             ->orderBy('name')
             ->get(['id', 'name', 'telefono']);
+
+        $vendorZones = optional(auth()->user()->vendor)
+            ?->deliveryZones()
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'coverage', 'delivery_fee', 'activo']) ?? collect();
+
+        $marketCourierStatus = MarketCourierStatus::current();
 
         return view('Vendedor.pedidos.show', [
             'pedido'              => $pedido,
@@ -167,6 +176,11 @@ class PedidoController extends Controller
             'deliveryLabels'      => PedidoItem::deliveryModeLabels(),
             'deliveryInconsistent'=> $deliveryInconsistent,
             'repartidores'        => $repartidores,
+            'vendorZones'         => $vendorZones,
+            'marketCourierStatus' => $marketCourierStatus->toArrayForDisplay(),
+            'marketCourierStatusUpdatedAt' => optional($marketCourierStatus->updated_at)?->diffForHumans(),
+            'marketCourierFee'    => config('market.courier_fee', 20),
+            'marketCourierStatusEndpoint' => route('vendedor.repartidor.estado'),
             'estadoLabels'        => $this->statusLabels(),
         ]);
     }

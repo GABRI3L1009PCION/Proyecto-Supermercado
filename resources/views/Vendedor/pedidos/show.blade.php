@@ -37,6 +37,10 @@
         .btn-accion{background:#F9F2F3;border:1px solid #D9A6A6;border-radius:8px;padding:10px 14px;font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer}
         .btn-accion:hover{background:#722F37;color:#fff}
         #mapa-envio{width:100%;height:260px;border-radius:12px;margin-top:15px}
+        .market-status{display:flex;align-items:center;gap:12px;background:#f3f4f6;border-radius:10px;padding:12px;margin-top:10px}
+        .market-status__dot{width:14px;height:14px;border-radius:999px;display:inline-block}
+        .zone-coverage-box{background:#fff7ed;border-radius:10px;padding:10px;font-size:.9rem;color:#92400e;margin-top:8px;display:none}
+        .notice-card{background:#fff5f5;border:1px dashed #f87171;border-radius:8px;padding:12px;margin-top:10px;color:#7f1d1d}
         @media(max-width:768px){
             .header{flex-direction:column;align-items:flex-start}
             .acciones-rapidas{flex-direction:column}
@@ -73,12 +77,21 @@
         'pickup_phone' => null,
         'pickup_address' => null,
         'delivery_instructions' => null,
+        'vendor_zone_id' => null,
     ];
     $deliveryLabels = $deliveryLabels ?? [];
     $deliveryInconsistent = $deliveryInconsistent ?? false;
     $facturacion = $facturacion ?? ['requiere'=>false,'nit'=>'CF','nombre'=>null,'direccion'=>null,'telefono'=>null];
     $repartidores = $repartidores ?? collect();
+    $vendorZones = $vendorZones ?? collect();
+    $hasVendorZones = $vendorZones->count() > 0;
+    $marketCourierStatus = $marketCourierStatus ?? ['status' => 'available', 'label' => 'Disponible para reparto', 'color' => '#16a34a'];
+    $marketCourierStatusUpdatedAt = $marketCourierStatusUpdatedAt ?? null;
+    $marketCourierFee = $marketCourierFee ?? 20;
+    $marketCourierStatusEndpoint = $marketCourierStatusEndpoint ?? null;
     $estadoLabels = $estadoLabels ?? [];
+    $selectedDeliveryMode = old('delivery_mode', $delivery['mode']);
+    $selectedVendorZone = old('vendor_zone_id', $delivery['vendor_zone_id']);
     $estadoBadgeMap = [
         'pendiente' => 'badge-pendiente',
         'pending' => 'badge-pendiente',
@@ -160,25 +173,66 @@
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="delivery_mode" id="deliverySelf"
                                value="{{ \App\Models\PedidoItem::DELIVERY_VENDOR_SELF }}"
-                            {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_VENDOR_SELF ? 'checked' : '' }}>
+                            {{ $selectedDeliveryMode === \App\Models\PedidoItem::DELIVERY_VENDOR_SELF ? 'checked' : '' }}
+                            {{ $hasVendorZones ? '' : 'disabled' }}>
                         <label class="form-check-label" for="deliverySelf">Yo mismo</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="delivery_mode" id="deliveryCourier"
-                               value="{{ \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER }}"
-                            {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER ? 'checked' : '' }}>
-                        <label class="form-check-label" for="deliveryCourier">Repartidor aliado</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="delivery_mode" id="deliveryMarket"
                                value="{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}"
-                            {{ old('delivery_mode', $delivery['mode']) === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER ? 'checked' : '' }}>
+                            {{ $selectedDeliveryMode === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER ? 'checked' : '' }}>
                         <label class="form-check-label" for="deliveryMarket">Repartidor del supermercado</label>
+                    </div>
+                    @unless($hasVendorZones)
+                        <div class="notice-card">
+                            Necesitas crear al menos una zona para poder entregar tú mismo.
+                            <a href="{{ route('vendedor.zonas.create') }}" class="fw-semibold">Crear zona de reparto</a>.
+                        </div>
+                    @endunless
+                    <div class="notice-card" id="marketCourierNotice" style="display:none;">
+                        <strong>Recuerda:</strong> el repartidor del supermercado cobra una tarifa fija de Q{{ number_format($marketCourierFee, 2) }}.
+                    </div>
+                    <div class="market-status" id="marketCourierStatusBox" data-endpoint="{{ $marketCourierStatusEndpoint }}">
+                        <span class="market-status__dot" id="marketCourierStatusDot" style="background: {{ $marketCourierStatus['color'] ?? '#16a34a' }}"></span>
+                        <div>
+                            <div class="fw-semibold">Estado actual: <span id="marketCourierStatusLabel">{{ $marketCourierStatus['label'] ?? 'Disponible' }}</span></div>
+                            <small class="text-muted" id="marketCourierStatusUpdatedAt">
+                                {{ $marketCourierStatusUpdatedAt ? 'Actualizado ' . $marketCourierStatusUpdatedAt : '' }}
+                            </small>
+                        </div>
                     </div>
                 </div>
 
+                <div class="col-lg-4 col-12" id="vendorZoneWrapper" {{ $selectedDeliveryMode === \App\Models\PedidoItem::DELIVERY_MARKET_COURIER ? 'style=display:none;' : '' }}>
+                    <label class="form-label" for="vendor_zone_id">Zona de reparto</label>
+                    <select class="form-select" name="vendor_zone_id" id="vendor_zone_id" {{ $hasVendorZones ? '' : 'disabled' }}>
+                        <option value="">Selecciona una zona</option>
+                        @foreach($vendorZones as $zone)
+                            <option value="{{ $zone->id }}"
+                                    data-fee="{{ number_format($zone->delivery_fee, 2, '.', '') }}"
+                                    data-coverage="{{ $zone->coverage }}"
+                                @selected((string)$selectedVendorZone === (string)$zone->id)>
+                                {{ $zone->nombre }} (Q{{ number_format($zone->delivery_fee, 2) }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">Administra tus zonas <a href="{{ route('vendedor.zonas.index') }}" target="_blank">aquí</a>.</small>
+                    @error('vendor_zone_id')<small class="text-danger d-block">{{ $message }}</small>@enderror
+                    <div class="zone-coverage-box" id="zoneCoverageBox"></div>
+                </div>
+
                 <div class="col-lg-4 col-12">
-                    <label class="form-label" for="repartidor_vendedor_select">Repartidor</label>
+                    <label class="form-label" for="delivery_fee_input">Tarifa por entrega (Q)</label>
+                    <input type="number" step="0.01" min="0" max="500" class="form-control" id="delivery_fee_input"
+                           name="delivery_fee"
+                           data-market-fee="{{ number_format($marketCourierFee, 2, '.', '') }}"
+                           data-default-fee="{{ number_format($delivery['fee'], 2, '.', '') }}"
+                           value="{{ old('delivery_fee', number_format($delivery['fee'], 2, '.', '')) }}">
+                    <small class="text-muted">La tarifa se ajusta según la zona o servicio seleccionado.</small>
+                </div>
+
+                <div class="col-lg-4 col-12" id="repartidorWrapper" style="display:none;">
+                    <label class="form-label" for="repartidor_vendedor_select">Repartidor del supermercado</label>
                     <select class="form-select" name="repartidor_id" id="repartidor_vendedor_select">
                         <option value="">Selecciona un repartidor</option>
                         @foreach($repartidores as $rep)
@@ -187,14 +241,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <small class="text-muted">Disponible para repartidores aliados o del supermercado.</small>
                     @error('repartidor_id')<small class="text-danger d-block">{{ $message }}</small>@enderror
-                </div>
-
-                <div class="col-lg-4 col-12">
-                    <label class="form-label" for="delivery_fee_input">Tarifa por entrega (Q)</label>
-                    <input type="number" step="0.01" min="0" max="500" class="form-control" id="delivery_fee_input"
-                           name="delivery_fee" value="{{ old('delivery_fee', number_format($delivery['fee'], 2, '.', '')) }}">
                 </div>
             </div>
 
@@ -310,20 +357,105 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const radios = document.querySelectorAll('input[name="delivery_mode"]');
-        const select = document.getElementById('repartidor_vendedor_select');
         const marketFields = document.getElementById('marketFields');
-        const toggle = () => {
+        const zoneWrapper = document.getElementById('vendorZoneWrapper');
+        const zoneSelect = document.getElementById('vendor_zone_id');
+        const zoneCoverageBox = document.getElementById('zoneCoverageBox');
+        const repartidorWrapper = document.getElementById('repartidorWrapper');
+        const repartidorSelect = document.getElementById('repartidor_vendedor_select');
+        const feeInput = document.getElementById('delivery_fee_input');
+        const marketNotice = document.getElementById('marketCourierNotice');
+        const marketFee = parseFloat(feeInput?.dataset.marketFee || '0');
+        const defaultFee = parseFloat(feeInput?.dataset.defaultFee || feeInput?.value || '0');
+
+        const toggleSections = () => {
             const checked = document.querySelector('input[name="delivery_mode"]:checked');
             const mode = checked ? checked.value : null;
-            if (select) {
-                select.disabled = !(mode === '{{ \App\Models\PedidoItem::DELIVERY_VENDOR_COURIER }}' || mode === '{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}');
+            const isMarket = mode === '{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}';
+            if (zoneWrapper) {
+                zoneWrapper.style.display = isMarket ? 'none' : '';
+            }
+            if (repartidorWrapper) {
+                repartidorWrapper.style.display = isMarket ? '' : 'none';
+            }
+            if (repartidorSelect) {
+                repartidorSelect.disabled = !isMarket;
             }
             if (marketFields) {
-                marketFields.style.display = mode === '{{ \App\Models\PedidoItem::DELIVERY_MARKET_COURIER }}' ? 'flex' : 'none';
+                marketFields.style.display = isMarket ? 'flex' : 'none';
+            }
+            if (marketNotice) {
+                marketNotice.style.display = isMarket ? 'block' : 'none';
+            }
+            if (feeInput) {
+                if (isMarket) {
+                    feeInput.value = marketFee.toFixed(2);
+                    feeInput.setAttribute('readonly', 'readonly');
+                } else {
+                    feeInput.removeAttribute('readonly');
+                    const option = zoneSelect?.selectedOptions?.[0];
+                    if (option && option.dataset.fee) {
+                        feeInput.value = parseFloat(option.dataset.fee).toFixed(2);
+                    } else {
+                        feeInput.value = defaultFee.toFixed(2);
+                    }
+                }
             }
         };
-        radios.forEach(r => r.addEventListener('change', toggle));
-        toggle();
+
+        const updateZonePreview = () => {
+            if (!zoneCoverageBox || !zoneSelect) return;
+            const option = zoneSelect.selectedOptions[0];
+            if (option && option.value) {
+                const coverage = option.dataset.coverage || '';
+                zoneCoverageBox.textContent = coverage ? 'Cobertura: ' + coverage : 'Sin cobertura definida para esta zona.';
+                zoneCoverageBox.style.display = 'block';
+                if (feeInput && option.dataset.fee) {
+                    feeInput.value = parseFloat(option.dataset.fee).toFixed(2);
+                }
+            } else {
+                zoneCoverageBox.style.display = 'none';
+            }
+        };
+
+        radios.forEach(r => r.addEventListener('change', toggleSections));
+        if (zoneSelect) {
+            zoneSelect.addEventListener('change', () => {
+                updateZonePreview();
+                toggleSections();
+            });
+        }
+
+        updateZonePreview();
+        toggleSections();
+
+        const statusBox = document.getElementById('marketCourierStatusBox');
+        const statusEndpoint = statusBox?.dataset.endpoint;
+        if (statusEndpoint) {
+            const dot = document.getElementById('marketCourierStatusDot');
+            const label = document.getElementById('marketCourierStatusLabel');
+            const updatedAt = document.getElementById('marketCourierStatusUpdatedAt');
+            const fetchStatus = () => {
+                fetch(statusEndpoint)
+                    .then(response => response.ok ? response.json() : null)
+                    .then(data => {
+                        if (!data) return;
+                        if (dot && data.color) {
+                            dot.style.background = data.color;
+                        }
+                        if (label && data.label) {
+                            label.textContent = data.label;
+                        }
+                        if (updatedAt) {
+                            updatedAt.textContent = 'Actualizado ' + new Date().toLocaleTimeString();
+                        }
+                    })
+                    .catch(() => {});
+            };
+
+            fetchStatus();
+            setInterval(fetchStatus, 30000);
+        }
     });
 </script>
 </body>

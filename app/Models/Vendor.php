@@ -18,6 +18,11 @@ class Vendor extends Model
         return $this->hasMany(PedidoItem::class);
     }
 
+    public function deliveryZones(): HasMany
+    {
+        return $this->hasMany(VendorDeliveryZone::class);
+    }
+
     // Atajo útil
     public function getIsActiveAttribute(): bool { return $this->status === 'active'; }
 }
