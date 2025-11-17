@@ -108,7 +108,7 @@
                                                                     class="rating-star"
                                                                     data-value="{{ $i }}"
                                                                     aria-label="{{ $i }} {{ \Illuminate\Support\Str::plural('estrella', $i) }}">
-                                                                <i class="fas fa-star"></i>
+                                                                <span class="star-icon">★</span>
                                                             </button>
                                                         @endfor
                                                         <div class="rating-hint" data-rating-hint>Selecciona una calificación</div>
@@ -255,7 +255,7 @@
 
                                     <div class="flex items-center gap-2 mt-2">
                                         @for ($i = 1; $i <= 5; $i++)
-                                            <i class="{{ $i <= $reseña->estrellas ? 'fas' : 'far' }} fa-star text-yellow-400"></i>
+                                            <span class="history-star {{ $i <= $reseña->estrellas ? 'is-filled' : '' }}">★</span>
                                         @endfor
                                         <span class="text-sm text-gray-500">Pedido #{{ $reseña->pedido->codigo ?? $reseña->pedido_id }}</span>
                                     </div>
@@ -560,8 +560,15 @@
     </script>
 
     <style>
-        /* Botón vino tinto con letras oro (mismo tamaño que "Volver al panel") */
-        :root { --vino:#5a0a2e; --vino-dark:#4b0827; --oro:#d4af37; }
+        /* Botón vino tinto con letras oro */
+        :root {
+            --vino: #5a0a2e;
+            --vino-dark: #4b0827;
+            --oro: #d4af37;
+            --star-yellow: #fbbf24;
+            --star-yellow-bright: #f59e0b;
+        }
+
         .btn-vino{
             background: var(--vino);
             color: var(--oro);
@@ -680,6 +687,7 @@
             line-height: 1.5;
         }
 
+        /* ===== ESTRELLAS MEJORADAS ===== */
         .rating-stars{
             display: flex;
             align-items: center;
@@ -687,33 +695,66 @@
             flex-wrap: wrap;
         }
         .rating-star{
-            width: 46px;
-            height: 46px;
+            width: 50px;
+            height: 50px;
             border-radius: 16px;
-            border: 1px solid transparent;
-            background: rgba(255,255,255,0.6);
+            border: 2px solid #e5cdb6;
+            background: rgba(255,255,255,0.7);
             display: grid;
             place-items: center;
-            font-size: 1.3rem;
-            color: #c6a27a;
-            transition: all .2s ease;
+            font-size: 1.8rem;
+            transition: all .25s ease;
+            cursor: pointer;
+            position: relative;
         }
+
+        .star-icon{
+            color: #d4c5a9;
+            transition: all .25s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         .rating-star:hover,
         .rating-star:focus{
-            transform: translateY(-2px);
-            border-color: #e5cdb6;
+            transform: translateY(-3px) scale(1.05);
+            border-color: var(--star-yellow);
             outline: none;
+            box-shadow: 0 8px 16px rgba(251,191,36,.3);
         }
+
+        .rating-star:hover .star-icon,
+        .rating-star:focus .star-icon{
+            color: var(--star-yellow);
+        }
+
         .rating-star.is-active{
-            background: #ffe8c8;
-            color: #f2a74b;
-            border-color: #f2ba7d;
-            box-shadow: 0 6px 12px rgba(242,167,75,.35);
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: var(--star-yellow-bright);
+            box-shadow: 0 6px 20px rgba(251,191,36,.4);
         }
+
+        .rating-star.is-active .star-icon{
+            color: var(--star-yellow-bright);
+            text-shadow: 0 2px 8px rgba(245,158,11,.4);
+        }
+
         .rating-hint{
-            font-size: .85rem;
+            font-size: .9rem;
             color: #8c7358;
             font-weight: 600;
+            margin-left: .5rem;
+        }
+
+        /* Estrellas en historial */
+        .history-star{
+            font-size: 1.3rem;
+            color: #d4c5a9;
+            transition: color .2s ease;
+        }
+
+        .history-star.is-filled{
+            color: var(--star-yellow-bright);
+            text-shadow: 0 2px 4px rgba(245,158,11,.3);
         }
 
         .tag-grid{
@@ -873,15 +914,23 @@
             }
             .btn-ghost,
             .submit-review-btn{ width: 100%; justify-content: center; }
+
+            .rating-star{
+                width: 45px;
+                height: 45px;
+                font-size: 1.6rem;
+            }
         }
 
         @media (max-width: 640px){
             .client-review-card{ padding: 1.4rem; }
-            .rating-star{ width: 42px; height: 42px; }
+            .rating-star{
+                width: 42px;
+                height: 42px;
+                font-size: 1.5rem;
+            }
             .tag-grid{ grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
         }
-
-        .submit-review-btn:focus{ outline:2px solid var(--oro); outline-offset:2px; }
 
         @keyframes cardFade{
             from{opacity:0;transform:translateY(16px);}

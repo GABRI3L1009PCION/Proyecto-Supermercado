@@ -8,30 +8,42 @@
           integrity="sha512-pY1dQ1hNUZo+sIAZ67/lbbC0xLqzM0dJkTLhALRz0BGmqeuVJQw+/7wjSc8CWfiwZBSkNjBa57a70e6m1dc+4g=="
           crossorigin="anonymous"
           referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --vino: #5a0a2e;
-            --rosa: #d16ba5;
-            --gris: #6c757d;
-            --fondo: #f6eef2;
-            --estrella: #f7b733;
+            --vino: #4A052A;
+            --vino-oscuro: #2e031b;
+            --rosa: #C25B9A;
+            --rosa-claro: #f3c4dd;
+            --gris-texto: #5c6268;
             --blanco: #ffffff;
+            --estrella: #fbbf24;
+            --estrella-oscura: #f59e0b;
+            --gris-claro: #E6E0E3;
+            --sombra-card: 0 8px 30px rgba(74, 5, 42, 0.1);
         }
 
         body {
-            background: var(--fondo);
+            background: linear-gradient(150deg, var(--vino-oscuro) 10%, #5b1035 60%, var(--rosa) 130%);
+            background-attachment: fixed;
             font-family: 'Poppins', sans-serif;
+            color: var(--gris-texto);
         }
 
         .reviews-wrap {
             max-width: 1100px;
-            margin: 2rem auto;
-            background: var(--blanco);
-            border-radius: 14px;
-            box-shadow: 0 6px 25px rgba(0,0,0,0.08);
-            padding: 2rem;
-            animation: fadeIn .45s ease;
+            margin: 3rem auto;
+            background: rgba(255,255,255,0.97);
+            border-radius: 20px;
+            box-shadow: var(--sombra-card);
+            padding: 2.5rem;
+            animation: slideIn .6s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .reviews-header {
@@ -39,438 +51,447 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 2px solid var(--rosa);
+            padding-bottom: 1rem;
         }
-
         .reviews-header h2 {
             color: var(--vino);
+            font-size: 1.8rem;
             font-weight: 700;
-            font-size: 1.6rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+        }
+        .reviews-header a {
+            background: linear-gradient(135deg, var(--vino), var(--rosa));
+            color: #fff;
+            padding: 0.7rem 1.4rem;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: .3s;
+        }
+        .reviews-header a:hover {
+            background: linear-gradient(135deg, var(--rosa), var(--vino));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(194,91,154,0.4);
         }
 
-        .reviews-header a {
-            background: var(--vino);
-            color: var(--blanco);
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: background 0.2s ease-in-out;
+        .alert-success {
+            background: var(--rosa);
+            color: #fff;
+            border-radius: 12px;
+            padding: 1rem 1.3rem;
+            margin-bottom: 2rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            box-shadow: var(--sombra-card);
+            animation: fadeIn .5s ease;
         }
-        .reviews-header a:hover { background: var(--rosa); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
         .average-box {
             background: linear-gradient(120deg, var(--vino), var(--rosa));
-            color: var(--blanco);
-            border-radius: 12px;
-            padding: 1.5rem;
+            color: #fff;
+            border-radius: 18px;
+            padding: 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            margin-bottom: 2.5rem;
         }
-
-        .average-score { font-size: 3rem; font-weight: bold; }
+        .average-score {
+            font-size: 4rem;
+            font-weight: 800;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .average-info { text-align: right; }
         .average-stars {
+            margin: .5rem 0;
+            font-size: 1.5rem;
             display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 1.15rem;
+            gap: 4px;
+            justify-content: flex-end;
         }
-        .average-info { text-align: right; line-height: 1.4; }
 
-        .average-stars i {
+        /* Estrellas mejoradas en promedio */
+        .average-stars .star {
             color: var(--estrella);
-        }
-
-        .average-stars i.far {
-            color: rgba(209, 107, 165, 0.35);
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
+            text-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+            font-size: 1.6rem;
         }
 
         .insights-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit,minmax(230px,1fr));
+            gap: 1.2rem;
             margin-bottom: 2rem;
         }
-
         .insight-card {
-            background: #fff7fb;
-            border: 1px solid rgba(209, 107, 165, 0.3);
-            border-radius: 14px;
-            padding: 1.1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-            box-shadow: 0 10px 30px rgba(209, 107, 165, 0.12);
+            background: #fff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--gris-claro);
+            box-shadow: var(--sombra-card);
+            transition: all .3s;
+            text-align: center;
         }
-
-        .insight-card span { font-size: 0.78rem; text-transform: uppercase; color: var(--gris); letter-spacing: .08em; }
-        .insight-card strong { font-size: 1.4rem; color: var(--vino); }
-        .insight-card small { font-size: 0.75rem; color: var(--gris); }
+        .insight-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(74,5,42,0.15);
+        }
+        .insight-card span {
+            display: block;
+            color: var(--gris-texto);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .insight-card strong {
+            color: var(--vino);
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .insight-card small {
+            color: var(--rosa);
+            font-size: 0.8rem;
+        }
 
         .talla-bars {
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
             margin-bottom: 2rem;
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--sombra-card);
         }
-
+        .talla-bars h3 {
+            color: var(--vino);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
         .talla-row {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
+            display:flex;
+            align-items:center;
+            gap:1rem;
+            margin-bottom:.8rem;
         }
-
         .talla-label {
-            min-width: 110px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--vino);
+            min-width:130px;
+            color:var(--vino);
+            font-weight:600;
+            font-size: 0.9rem;
         }
-
         .talla-progress {
-            flex: 1;
-            height: 10px;
-            border-radius: 999px;
-            background: #f3d5e3;
-            overflow: hidden;
-            position: relative;
+            flex:1;
+            background:#f0e6eb;
+            height:14px;
+            border-radius:999px;
+            overflow:hidden;
         }
-
         .talla-progress span {
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: linear-gradient(90deg, var(--rosa), var(--vino));
-            transform-origin: left;
+            display:block;
+            height:100%;
+            background:linear-gradient(90deg,var(--rosa),var(--vino));
+            transition:width .5s ease;
         }
-
-        .talla-value {
-            font-size: 0.8rem;
-            color: var(--gris);
+        .talla-percentage {
+            min-width: 50px;
+            text-align: right;
             font-weight: 600;
-        }
-
-        .score-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            margin-top: 1rem;
-        }
-
-        .reaction-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.4rem 0.85rem;
-            border-radius: 999px;
-            border: 1px solid rgba(209, 107, 165, 0.24);
-            background: rgba(209, 107, 165, 0.16);
             color: var(--vino);
-            font-size: 0.78rem;
-            font-weight: 600;
         }
 
         .review-card {
-            position: relative;
+            background: #fff;
+            border: 1px solid var(--gris-claro);
             border-radius: 18px;
-            border: 1px solid rgba(209, 107, 165, 0.18);
-            padding: 1.75rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,250,253,0.9));
-            box-shadow: 0 18px 35px rgba(90, 10, 46, 0.08);
-            overflow: hidden;
-            animation: slideUp .45s ease both;
-            animation-delay: calc(.05s * var(--delay, 0));
+            padding: 2rem;
+            box-shadow: var(--sombra-card);
+            margin-bottom: 1.8rem;
+            transition: all .3s ease;
         }
-        .review-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(120deg, rgba(209, 107, 165, 0.08), rgba(90, 10, 46, 0.05));
-            opacity: 0;
-            transition: opacity .25s ease;
-            pointer-events: none;
+        .review-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(74,5,42,0.15);
         }
-        .review-card:hover::before { opacity: 1; }
 
         .review-card__header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-            position: relative;
+            margin-bottom: 1.2rem;
+            gap: 1rem;
         }
+
+        /* ESTRELLAS MEJORADAS EN RESEÑAS */
         .review-card__stars {
             display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 1rem;
-            color: var(--vino);
+            gap: 4px;
+            margin-bottom: 0.8rem;
         }
-        .review-card__stars i { color: var(--estrella); }
-        .review-card__score { font-weight: 600; font-size: 0.9rem; color: var(--gris); }
+        .review-card__stars .star {
+            font-size: 1.4rem;
+            color: var(--estrella);
+            text-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+        }
+        .review-card__stars .star-half {
+            color: var(--estrella);
+        }
+        .review-card__stars .star-empty {
+            color: #d4c5a9;
+        }
 
         .review-card__title {
-            margin: 0.35rem 0 0.2rem;
-            font-size: 1.3rem;
-            color: #2b1b2a;
-            font-weight: 700;
+            color: var(--vino);
+            font-weight:700;
+            font-size:1.3rem;
+            margin-bottom: 0.3rem;
         }
         .review-card__product {
-            margin: 0;
-            font-size: 0.9rem;
-            color: var(--gris);
+            color: var(--rosa);
+            font-size: 0.95rem;
+            font-weight: 500;
         }
-
         .review-card__meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.4rem;
-            text-align: right;
+            text-align:right;
+            color: var(--gris-texto);
+            font-size: 0.9rem;
         }
-        .review-card__customer { font-weight: 600; color: var(--vino); }
-        .review-card__date { font-size: 0.82rem; color: var(--gris); }
-        .review-card__reaction {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.35rem 0.75rem;
-            border-radius: 999px;
-            background: rgba(209, 107, 165, 0.12);
-            color: var(--vino);
-            font-size: 0.8rem;
-            font-weight: 600;
+        .review-card__meta i {
+            color: var(--rosa);
         }
-
         .review-card__comment {
-            margin-top: 1rem;
-            font-size: 0.98rem;
-            color: #403240;
-            line-height: 1.6;
+            margin-top:1rem;
+            line-height:1.7;
+            color:#333;
+            font-size: 0.95rem;
         }
 
-        .review-card__grid {
-            margin-top: 1.4rem;
-            display: grid;
-            gap: 1.4rem;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-        }
         .review-card__panel {
-            background: rgba(255,255,255,0.9);
-            border-radius: 14px;
-            border: 1px solid rgba(209, 107, 165, 0.14);
-            padding: 1.1rem 1.2rem;
-            backdrop-filter: blur(2px);
+            background: linear-gradient(135deg, #f7f3f5 0%, #fef8f2 100%);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-top: 1.2rem;
+            border: 1px solid #f1d9c5;
         }
         .review-card__panel h4 {
-            margin: 0 0 0.85rem;
-            font-size: 0.95rem;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--gris);
+            font-size: .85rem;
+            color: var(--vino);
+            font-weight: 700;
+            border-bottom: 2px solid var(--rosa-claro);
+            padding-bottom: .6rem;
+            margin-bottom: .8rem;
         }
-        .review-card__list {
+        .review-card__panel ul {
             list-style: none;
-            margin: 0;
             padding: 0;
-            display: grid;
-            gap: 0.65rem;
+            margin: 0;
         }
-        .review-card__list-item {
+        .review-card__panel li {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 0.6rem;
-            font-size: 0.9rem;
-            color: #43354a;
+            padding: 0.4rem 0;
+            color: var(--gris-texto);
         }
-        .review-card__list-item i { font-size: 0.9rem; margin-top: 2px; }
-        .review-card__list-item--positive i { color: #35b37e; }
-        .review-card__list-item--alert i { color: #d94865; }
-        .review-card__list-item--empty { color: var(--gris); font-style: italic; }
+        .review-card__panel li i {
+            font-size: 1rem;
+        }
 
         .review-metrics {
-            margin-top: 1.2rem;
+            margin-top: 1rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.6rem;
         }
         .review-metrics span {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.35rem 0.75rem;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            background: rgba(90, 10, 46, 0.08);
+            display:inline-flex;
+            align-items:center;
+            gap:.5rem;
+            background: rgba(74,5,42,0.08);
             color: var(--vino);
+            border: 1px solid rgba(74,5,42,0.15);
+            border-radius:999px;
+            padding:.5rem 1rem;
+            font-size:.85rem;
+            font-weight:600;
         }
 
         .review-gallery {
-            margin-top: 1.4rem;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+            margin-top:1.2rem;
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
         }
         .review-gallery a {
             display: block;
-            width: 96px;
-            height: 96px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 12px 25px rgba(0,0,0,0.12);
-            transition: transform .25s ease, box-shadow .25s ease;
-        }
-        .review-gallery img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            transition: transform .3s ease;
         }
         .review-gallery a:hover {
-            transform: translateY(-4px) scale(1.03);
-            box-shadow: 0 18px 35px rgba(0,0,0,0.18);
+            transform: scale(1.05);
         }
-
-        .review-card__footer {
-            margin-top: 1.4rem;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            font-size: 0.82rem;
-            color: var(--gris);
+        .review-gallery img {
+            width:100px;
+            height:100px;
+            object-fit:cover;
+            border-radius:12px;
+            border:2px solid var(--gris-claro);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .reply-box {
-            margin-top: 1.2rem;
-            padding: 0.9rem 1.1rem;
-            border-left: 4px solid var(--rosa);
-            background: #faf4f7;
-            border-radius: 12px;
+            margin-top:1.2rem;
+            background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+            border-left:4px solid var(--rosa);
+            padding:1.2rem;
+            border-radius:12px;
         }
-        .reply-box strong { color: var(--vino); }
+        .reply-box strong {
+            color: var(--vino);
+            display: block;
+            margin-bottom: 0.6rem;
+            font-size: 0.95rem;
+        }
+        .reply-box p {
+            color: var(--gris-texto);
+            line-height: 1.6;
+        }
 
         .reply-form {
             margin-top: 1.2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
+            background: #f9fafb;
+            padding: 1.2rem;
+            border-radius: 12px;
+            border: 1px solid var(--gris-claro);
         }
         .reply-form textarea {
-            width: 100%;
-            min-height: 80px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            padding: 0.7rem 0.8rem;
-            font-size: .9rem;
-            resize: vertical;
+            width:100%;
+            min-height:100px;
+            padding:1rem;
+            border:1px solid #ccc;
+            border-radius:10px;
+            resize:vertical;
+            font-family:'Poppins',sans-serif;
+            font-size:.95rem;
+            transition: all .3s ease;
+        }
+        .reply-form textarea:focus {
+            outline: none;
+            border-color: var(--rosa);
+            box-shadow: 0 0 0 3px rgba(194,91,154,0.1);
         }
         .reply-form button {
-            align-self: flex-end;
-            background: var(--vino);
-            color: #fff;
-            border: none;
-            padding: 0.55rem 1.1rem;
-            border-radius: 8px;
+            margin-top:.8rem;
+            background:var(--vino);
+            color:#fff;
+            border:none;
+            border-radius:10px;
+            padding:.7rem 1.5rem;
             font-weight: 600;
+            transition:.3s;
             cursor: pointer;
-            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .reply-form button:hover { background: var(--rosa); }
+        .reply-form button:hover {
+            background:var(--rosa);
+            transform:translateY(-2px);
+            box-shadow: 0 4px 12px rgba(194,91,154,0.3);
+        }
 
-        .empty-state { text-align: center; color: var(--gris); padding: 1rem; }
-
-        .alert-success {
-            background: #3ccf91;
-            color: #fff;
-            border-radius: 10px;
-            padding: 1rem;
+        .empty-state {
+            text-align:center;
+            color:var(--gris-texto);
+            border:2px dashed var(--gris-claro);
+            padding:3rem 2rem;
+            border-radius:16px;
+            background:#fff9fb;
+        }
+        .empty-state i {
+            font-size: 3rem;
+            color: var(--rosa);
             margin-bottom: 1rem;
-            animation: fadeOut 5s ease forwards;
+        }
+        .empty-state p {
+            font-size: 1.1rem;
         }
 
-        @keyframes fadeOut {
-            0% { opacity: 1; }
-            80% { opacity: 1; }
-            100% { opacity: 0; display: none; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (max-width: 992px) {
-            .reviews-wrap { padding: 1.5rem; margin: 1.5rem auto; }
-            .average-box { flex-direction: column; align-items: flex-start; gap: 1rem; }
-            .average-info { text-align: left; }
-        }
-
-        @media (max-width: 640px) {
-            .reviews-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-            .reviews-header a { width: 100%; text-align: center; }
-            .review-header { flex-direction: column; align-items: flex-start; gap: .75rem; }
-            .review-gallery { gap: 8px; }
-            .review-gallery a { width: 80px; height: 80px; }
+        @media(max-width:768px){
+            .average-box{
+                flex-direction:column;
+                align-items:flex-start;
+                gap:1rem;
+            }
+            .average-info {
+                text-align: left;
+            }
+            .average-stars {
+                justify-content: flex-start;
+            }
+            .reviews-header{
+                flex-direction:column;
+                gap:1rem;
+                align-items:flex-start;
+            }
+            .review-card__header {
+                flex-direction: column;
+            }
+            .review-card__meta {
+                text-align: left;
+            }
+            .talla-label {
+                min-width: 100px;
+                font-size: 0.85rem;
+            }
         }
     </style>
 
     <div class="reviews-wrap">
 
-        {{-- ✅ Notificación de éxito --}}
+        {{-- ✅ Notificación --}}
         @if(session('success'))
             <div class="alert-success">
-                <i class="fas fa-check-circle"></i> {{ session('success') }}
+                <i class="fas fa-check-circle"></i>
+                {{ session('success') }}
             </div>
         @endif
 
         {{-- 🔹 Encabezado --}}
         <div class="reviews-header">
             <h2><i class="fas fa-star"></i> Reseñas de tus productos</h2>
-            <a href="{{ route('vendedor.dashboard') }}"><i class="fas fa-arrow-left"></i> Volver al panel</a>
+            <a href="{{ route('vendedor.dashboard') }}">
+                <i class="fas fa-arrow-left"></i> Volver al panel
+            </a>
         </div>
 
         {{-- 🔹 Promedio general --}}
         <div class="average-box">
             <div class="average-score">{{ number_format($promedio ?? 0, 1) }}</div>
             <div class="average-info">
-                <span class="sr-only">Promedio general {{ number_format($promedio ?? 0, 1) }} de 5 estrellas</span>
-                <div class="average-stars" aria-hidden="true">
-                    @php $valorPromedio = $promedio ?? 0; @endphp
+                <div class="average-stars">
+                    @php
+                        $valorPromedio = $promedio ?? 0;
+                        $estrellas_llenas = floor($valorPromedio);
+                        $tiene_media = ($valorPromedio - $estrellas_llenas) >= 0.5;
+                    @endphp
+
                     @for($i = 1; $i <= 5; $i++)
-                        @php
-                            $difference = $valorPromedio - ($i - 1);
-                        @endphp
-                        @if($difference >= 1)
-                            <i class="fas fa-star"></i>
-                        @elseif($difference >= 0.5)
-                            <i class="fas fa-star-half-alt"></i>
+                        @if($i <= $estrellas_llenas)
+                            <span class="star">★</span>
+                        @elseif($i == $estrellas_llenas + 1 && $tiene_media)
+                            <span class="star">★</span>
                         @else
-                            <i class="far fa-star"></i>
+                            <span class="star" style="color: rgba(255,255,255,0.3);">★</span>
                         @endif
                     @endfor
                 </div>
@@ -478,70 +499,57 @@
             </div>
         </div>
 
-        {{-- 🔹 Métricas de experiencia --}}
-        @php
-            $totalTallas = $tallaDistribucion->sum();
-            $topReactionKey = $reaccionesResumen->keys()->first();
-            $topReactionLabel = $topReactionKey ? (\App\Models\Reseña::REACCIONES[$topReactionKey] ?? \Illuminate\Support\Str::title(str_replace('_', ' ', $topReactionKey))) : null;
-        @endphp
-
+        {{-- 🔹 Métricas --}}
         <div class="insights-grid">
             <div class="insight-card">
                 <span>Uso diario</span>
-                <strong>{{ !is_null($promediosCategoria['uso']) ? number_format($promediosCategoria['uso'], 2) : '—' }}</strong>
+                <strong>{{ number_format($promediosCategoria['uso'] ?? 0, 1) }}</strong>
                 <small>Promedio de usabilidad</small>
             </div>
             <div class="insight-card">
                 <span>Comodidad</span>
-                <strong>{{ !is_null($promediosCategoria['comodidad']) ? number_format($promediosCategoria['comodidad'], 2) : '—' }}</strong>
+                <strong>{{ number_format($promediosCategoria['comodidad'] ?? 0, 1) }}</strong>
                 <small>Percepción de confort</small>
             </div>
             <div class="insight-card">
                 <span>Duración</span>
-                <strong>{{ !is_null($promediosCategoria['duracion']) ? number_format($promediosCategoria['duracion'], 2) : '—' }}</strong>
+                <strong>{{ number_format($promediosCategoria['duracion'] ?? 0, 1) }}</strong>
                 <small>Resistencia en el tiempo</small>
-            </div>
-            <div class="insight-card">
-                <span>Reacciones destacadas</span>
-                <strong>{{ $reaccionesResumen->sum() }}</strong>
-                <small>{{ $topReactionLabel ?? 'Sin reacciones aún' }}</small>
             </div>
         </div>
 
-        @if($totalTallas > 0)
-            <div class="talla-bars" aria-label="Distribución de tallas percibidas">
+        {{-- 🔹 Distribución de tallas --}}
+        @if(!empty($tallaDistribucion) && collect($tallaDistribucion)->sum() > 0)
+            <div class="talla-bars">
+                <h3><i class="fas fa-ruler-horizontal"></i> Distribución de tallas percibidas</h3>
                 @foreach($tallaDistribucion as $clave => $cantidad)
                     @php
-                        $porcentaje = $totalTallas ? round(($cantidad / $totalTallas) * 100) : 0;
-                        $label = match($clave) {
+                        $total = collect($tallaDistribucion)->sum();
+                        $porcentaje = round(($cantidad / $total) * 100);
+                        $label = match($clave){
                             'pequena' => 'Más pequeña',
                             'exacta' => 'Talla exacta',
                             'grande' => 'Más grande',
-                            default => ucfirst($clave),
+                            default => ucfirst($clave)
                         };
                     @endphp
                     <div class="talla-row">
                         <span class="talla-label">{{ $label }}</span>
                         <div class="talla-progress">
-                            <span style="transform: scaleX({{ $porcentaje / 100 }});"></span>
+                            <span style="width:{{ $porcentaje }}%"></span>
                         </div>
-                        <span class="talla-value">{{ $porcentaje }}%</span>
+                        <span class="talla-percentage">{{ $porcentaje }}%</span>
                     </div>
                 @endforeach
             </div>
         @endif
 
-        @if($reaccionesResumen->isNotEmpty())
-            <div class="score-chips" aria-label="Reacciones favoritas">
-                @foreach($reaccionesResumen as $clave => $conteo)
-                    <span class="reaction-badge"><i class="fas fa-heart"></i> {{ \App\Models\Reseña::REACCIONES[$clave] ?? \Illuminate\Support\Str::title(str_replace('_', ' ', $clave)) }} · {{ $conteo }}</span>
-                @endforeach
-            </div>
-        @endif
-
-        {{-- 🔹 Listado de reseñas --}}
+        {{-- 🔹 Reseñas --}}
         @if($reseñas->isEmpty())
-            <p class="empty-state">Aún no tienes reseñas.</p>
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>Aún no tienes reseñas.</p>
+            </div>
         @else
             @foreach($reseñas as $r)
                 @php
@@ -550,104 +558,62 @@
                     $alertas = collect($agrupados['alertas'] ?? []);
                     $otros = collect($agrupados['otros'] ?? []);
                     $hasScores = $r->uso_score || $r->comodidad_score || $r->duracion_score;
+
+                    $rating = floatval($r->estrellas);
+                    $estrellas_completas = floor($rating);
+                    $tiene_media_estrella = ($rating - $estrellas_completas) >= 0.5;
                 @endphp
-                <article class="review-card" style="--delay: {{ $loop->index }};">
+                <article class="review-card">
                     <header class="review-card__header">
                         <div>
                             <div class="review-card__stars">
                                 @for($i = 1; $i <= 5; $i++)
-                                    <i class="{{ $i <= $r->estrellas ? 'fas fa-star' : 'far fa-star' }}"></i>
+                                    @if($i <= $estrellas_completas)
+                                        <span class="star">★</span>
+                                    @elseif($i == $estrellas_completas + 1 && $tiene_media_estrella)
+                                        <span class="star-half">★</span>
+                                    @else
+                                        <span class="star-empty">★</span>
+                                    @endif
                                 @endfor
-                                <span class="review-card__score">{{ $r->estrellas }}/5</span>
                             </div>
-                            <h3 class="review-card__title">{{ $r->resumen_titular }}</h3>
-                            <p class="review-card__product">
-                                {{ $r->producto->nombre ?? 'Producto eliminado' }}
-                                @if($r->categoria_contexto_label)
-                                    · {{ $r->categoria_contexto_label }}
-                                @endif
-                            </p>
+                            <h3 class="review-card__title">{{ $r->resumen_titular ?? 'Reseña sin título' }}</h3>
+                            <p class="review-card__product">{{ $r->producto->nombre ?? 'Producto eliminado' }}</p>
                         </div>
                         <div class="review-card__meta">
-                            <span class="review-card__customer"><i class="fas fa-user-circle"></i> {{ $r->cliente->name ?? 'Cliente desconocido' }}</span>
-                            <span class="review-card__date">{{ $r->created_at ? $r->created_at->format('d M, Y') : 'Fecha desconocida' }}</span>
-                            @if($r->reaccion_label)
-                                <span class="review-card__reaction"><i class="fas fa-heart"></i> {{ $r->reaccion_label }}</span>
+                            <span><i class="fas fa-user"></i> {{ $r->cliente->name ?? 'Cliente desconocido' }}</span><br>
+                            <small>{{ $r->created_at?->format('d M, Y') }}</small>
+                        </div>
+                    </header>
+
+                    <p class="review-card__comment">
+                        {{ $r->comentario ?: 'El cliente no dejó comentarios adicionales.' }}
+                    </p>
+
+                    {{-- Detalles --}}
+                    <div class="review-card__panel">
+                        <h4><i class="fas fa-list-check"></i> Aspectos Destacados</h4>
+                        <ul>
+                            @if($positivos->isEmpty() && $alertas->isEmpty())
+                                <li><em style="color: var(--gris-texto);">Sin comentarios específicos</em></li>
+                            @else
+                                @foreach($positivos as $p)
+                                    <li>
+                                        <i class="fas fa-check-circle" style="color:#28a745"></i>
+                                        {{ $p['label'] }}
+                                    </li>
+                                @endforeach
+                                @foreach($alertas as $a)
+                                    <li>
+                                        <i class="fas fa-exclamation-triangle" style="color:#dc3545"></i>
+                                        {{ $a['label'] }}
+                                    </li>
+                                @endforeach
                             @endif
-                        </div>
-                    </header>
+                        </ul>
+                    </div>
 
-                    <p class="review-card__comment">{{ $r->comentario ?: 'El cliente no dejó comentarios adicionales.' }}</p>
-
-                    <div class="review-card__grid">
-                        <div class="review-card__panel">
-                            <h4>Detalles según clientes</h4>
-                            <ul class="review-card__list">
-                                @php
-                                    $tieneAspectos = $positivos->isNotEmpty() || $alertas->isNotEmpty() || $otros->isNotEmpty();
-                                @endphp
-                                @if($tieneAspectos)
-                                    @foreach($positivos as $item)
-                                        <li class="review-card__list-item review-card__list-item--positive">
-                                            <i class="fas {{ $item['icon'] ?? 'fa-check-circle' }}"></i>
-                                            <span>{{ $item['label'] }}</span>
-                                        </li>
-                                    @endforeach
-                                    @foreach($alertas as $item)
-                                        <li class="review-card__list-item review-card__list-item--alert">
-                                            <i class="fas {{ $item['icon'] ?? 'fa-circle-exclamation' }}"></i>
-                                            <span>{{ $item['label'] }}</span>
-                                        </li>
-                                    @endforeach
-                                    @foreach($otros as $item)
-                                        <li class="review-card__list-item">
-                                            <i class="fas {{ $item['icon'] ?? 'fa-circle' }}"></i>
-                                            <span>{{ $item['label'] }}</span>
-                                        </li>
-                                    @endforeach
-                                @else
-                                    <li class="review-card__list-item review-card__list-item--empty">
-                                        <i class="fas fa-circle-info"></i>
-                                        <span>Sin aspectos destacados por el cliente.</span>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
-                        <div class="review-card__panel">
-                            <h4>Experiencia de compra</h4>
-                            <ul class="review-card__list">
-                                <li class="review-card__list-item">
-                                    <i class="fas fa-receipt"></i>
-                                    <span>Pedido {{ $r->pedido?->codigo ?? ($r->pedido_id ? '#'.$r->pedido_id : '—') }}</span>
-                                </li>
-                                @if($r->tiempo_uso_label)
-                                    <li class="review-card__list-item">
-                                        <i class="fas fa-clock"></i>
-                                        <span>{{ $r->tiempo_uso_label }}</span>
-                                    </li>
-                                @endif
-                                @if($r->talla_percebida_label)
-                                    <li class="review-card__list-item">
-                                        <i class="fas fa-ruler-horizontal"></i>
-                                        <span>{{ $r->talla_percebida_label }}</span>
-                                    </li>
-                                @endif
-                                @if($r->categoria_contexto_label)
-                                    <li class="review-card__list-item">
-                                        <i class="fas fa-tag"></i>
-                                        <span>{{ $r->categoria_contexto_label }}</span>
-                                    </li>
-                                @endif
-                                @if($r->tiempo_uso_label || $r->talla_percebida_label)
-                                    <li class="review-card__list-item">
-                                        <i class="fas fa-calendar-check"></i>
-                                        <span>Compra verificada el {{ $r->created_at ? $r->created_at->format('d M, Y') : '—' }}</span>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
-                    </header>
-
+                    {{-- Métricas --}}
                     @if($hasScores)
                         <div class="review-metrics">
                             @if($r->uso_score)
@@ -662,30 +628,30 @@
                         </div>
                     @endif
 
+                    {{-- Imágenes --}}
                     @if(isset($r->imagenes) && $r->imagenes->count() > 0)
-                        <div class="review-gallery" role="list">
+                        <div class="review-gallery">
                             @foreach($r->imagenes as $img)
-                                <a href="{{ asset('storage/' . $img->ruta) }}" target="_blank" rel="noopener" role="listitem">
-                                    <img src="{{ asset('storage/' . $img->ruta) }}" alt="Imagen de reseña del producto {{ $r->producto->nombre ?? '' }}">
+                                <a href="{{ asset('storage/'.$img->ruta) }}" target="_blank">
+                                    <img src="{{ asset('storage/'.$img->ruta) }}" alt="Imagen de reseña">
                                 </a>
                             @endforeach
                         </div>
                     @endif
 
-                    <div class="review-card__footer">
-                        <span><i class="fas fa-store"></i> {{ config('app.name', 'Supermercado Atlantia') }}</span>
-                        <span><i class="fas fa-shield-check"></i> Compra verificada</span>
-                    </div>
-
+                    {{-- Respuesta --}}
                     @if($r->respuesta_vendedor)
                         <div class="reply-box">
-                            <strong>Tu respuesta:</strong> {{ $r->respuesta_vendedor }}
+                            <strong><i class="fas fa-reply"></i> Tu respuesta:</strong>
+                            <p>{{ $r->respuesta_vendedor }}</p>
                         </div>
-                    @elseif(isset($r->id))
+                    @else
                         <form action="{{ route('vendedor.reseñas.responder', $r->id) }}" method="POST" class="reply-form">
                             @csrf
                             <textarea name="respuesta_vendedor" placeholder="Escribe una respuesta pública al cliente..." required></textarea>
-                            <button type="submit"><i class="fas fa-paper-plane"></i> Responder</button>
+                            <button type="submit">
+                                <i class="fas fa-paper-plane"></i> Responder
+                            </button>
                         </form>
                     @endif
                 </article>

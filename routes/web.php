@@ -45,6 +45,7 @@ use App\Http\Controllers\Vendedor\VendorZoneController;
 use App\Http\Controllers\Vendedor\MarketCourierStatusController;
 use App\Http\Controllers\Vendedor\ReseñaController;
 use App\Http\Controllers\Vendedor\VendedorPerfilController;
+use App\Http\Controllers\Vendedor\DeliveryZoneController as VendedorDeliveryZoneController; // 🔹 NUEVO
 
 // Cliente: tracking de pedido
 use App\Http\Controllers\PedidoController;
@@ -168,6 +169,8 @@ Route::middleware(['auth', 'role:admin'])
         // Reportes y gestión
         Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
         Route::resource('/repartidores', RepartidorAdminController::class)->names('repartidores');
+
+        // Zonas de entrega (ADMIN)
         Route::resource('/zonas-entrega', DeliveryZoneController::class)
             ->parameters(['zonas-entrega' => 'deliveryZone'])
             ->names('delivery-zones');
@@ -193,6 +196,11 @@ Route::middleware(['auth', 'role:vendedor', 'vendor.active'])
         // Productos
         Route::resource('/productos', VendedorProductoController::class)->names('productos');
 
+        // 🔹 Zonas de reparto del vendedor (CRUD propio)
+        Route::resource('/zonas', VendedorDeliveryZoneController::class)
+            ->except(['show'])
+            ->names('zonas');
+
         // Pedidos
         Route::get('/pedidos', [VendedorPedidoController::class, 'index'])->name('pedidos.index');
         Route::get('/pedidos/{pedido}', [VendedorPedidoController::class, 'show'])->whereNumber('pedido')->name('pedidos.show');
@@ -203,7 +211,7 @@ Route::middleware(['auth', 'role:vendedor', 'vendor.active'])
             ->whereNumber('pedido')
             ->name('pedidos.comprobante.pdf');
 
-        // Items de pedido
+        // Items de pedido (incluye logística)
         Route::post('/pedidoitems/{pedidoItem}/estado', [PedidoItemController::class, 'updateStatus'])
             ->whereNumber('pedidoItem')->name('pedidoitems.estado');
         Route::post('/pedidos/{pedido}/estado', [PedidoItemController::class, 'updateAllStatus'])

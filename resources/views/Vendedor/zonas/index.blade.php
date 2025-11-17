@@ -3,6 +3,20 @@
 @section('title', 'Zonas de reparto | Panel de vendedor')
 
 @section('content')
+    <div class="vd-wrap">
+        <div class="vd-topbar">
+            <h1 class="vd-title">
+                <i class="fas fa-map-marked-alt"></i> Zonas de reparto
+            </h1>
+            <div class="vd-actions">
+                <a href="{{ route('vendedor.zonas.create') }}" class="vd-btn vd-btn--verde">
+                    <i class="fas fa-plus"></i> Nueva zona
+                </a>
+                <a href="{{ route('vendedor.dashboard') }}" class="vd-btn vd-btn--gris">
+                    <i class="fas fa-arrow-left"></i> Volver al panel
+                </a>
+            </div>
+        </div>
 <div class="container py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
@@ -19,6 +33,11 @@
         </div>
     </div>
 
+        <section class="vd-box">
+            <div class="vd-box__head">
+                <h3><i class="fas fa-list"></i> Mis zonas de reparto</h3>
+            </div>
+
     @if(session('ok'))
         <div class="alert alert-success">{{ session('ok') }}</div>
     @endif
@@ -26,8 +45,16 @@
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
+                <table class="vd-table">
                 <table class="table table-hover mb-0">
                     <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Cobertura</th>
+                        <th>Tarifa reparto (Q)</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
                         <tr>
                             <th>Nombre</th>
                             <th class="d-none d-md-table-cell">Cobertura</th>
@@ -37,6 +64,35 @@
                         </tr>
                     </thead>
                     <tbody>
+                    @forelse ($zonas as $zona)
+                        @php
+                            $badge = $zona->estado === 'activa' ? 'vd-badge--success' : 'vd-badge--muted';
+                        @endphp
+                        <tr>
+                            <td>{{ $zona->nombre }}</td>
+                            <td>{{ $zona->descripcion_cobertura ?? '—' }}</td>
+                            <td>Q{{ number_format($zona->tarifa_reparto, 2) }}</td>
+                            <td><span class="vd-badge {{ $badge }}">{{ ucfirst($zona->estado) }}</span></td>
+                            <td>
+                                <a href="{{ route('vendedor.zonas.edit', $zona) }}" class="vd-btn--small">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <form action="{{ route('vendedor.zonas.destroy', $zona) }}" method="POST" style="display:inline-block;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="vd-btn--small" onclick="return confirm('¿Eliminar zona?')">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="vd-table__empty">
+                                Aún no tienes zonas de reparto creadas.
+                            </td>
+                        </tr>
+                    @endforelse
                         @forelse($zones as $zone)
                             <tr>
                                 <td>{{ $zone->nombre }}</td>
@@ -73,12 +129,17 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="mt-3">
+                {{ $zonas->links() }}
         </div>
         @if($zones->hasPages())
             <div class="card-footer">
                 {{ $zones->links() }}
             </div>
+        </section>
         @endif
     </div>
 </div>
 @endsection
+
