@@ -85,7 +85,11 @@
     $repartidores = $repartidores ?? collect();
     $vendorZones = $vendorZones ?? collect();
     $hasVendorZones = $vendorZones->count() > 0;
-    $marketCourierStatus = $marketCourierStatus ?? ['status' => 'available', 'label' => 'Disponible para reparto', 'color' => '#16a34a'];
+    $marketCourierStatus = $marketCourierStatus ?? [
+        'status' => \App\Models\MarketCourierStatus::STATUS_AVAILABLE,
+        'label'  => 'Disponible para reparto',
+        'color'  => '#22c55e',
+    ];
     $marketCourierStatusUpdatedAt = $marketCourierStatusUpdatedAt ?? null;
     $marketCourierFee = $marketCourierFee ?? 20;
     $marketCourierStatusEndpoint = $marketCourierStatusEndpoint ?? null;

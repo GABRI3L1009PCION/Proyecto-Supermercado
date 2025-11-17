@@ -11,13 +11,13 @@ return new class extends Migration
     {
         Schema::create('market_courier_statuses', function (Blueprint $table) {
             $table->id();
-            $table->string('status', 30)->default('available');
+            $table->string('status', 40)->default('disponible_para_reparto');
             $table->string('note')->nullable();
             $table->timestamps();
         });
 
         DB::table('market_courier_statuses')->insert([
-            'status'     => 'available',
+            'status'     => 'disponible_para_reparto',
             'note'       => 'Disponible para reparto',
             'created_at' => now(),
             'updated_at' => now(),
